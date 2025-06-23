@@ -118,3 +118,37 @@ test('subgraph isomorphism with direction', () => {
 	expect(matches[0]).toEqual([0, 1, 2]);
 	expect(matches[1]).toEqual([3, 1, 2]);
 });
+
+test('subgraph isomorphism with edge labels', () => {
+	const pattern: Graph = {
+		adjacencyMatrix: [
+			[0, 1, 0],
+			[1, 0, 1],
+			[0, 1, 0],
+		],
+		edgeLabels: [
+			['', '-', ''],
+			['-', '', '='],
+			['', '=', ''],
+		],
+	};
+	const target: Graph = {
+		adjacencyMatrix: [
+			[0, 1, 0, 0],
+			[1, 0, 1, 1],
+			[0, 1, 0, 0],
+			[0, 1, 0, 0],
+		],
+		edgeLabels: [
+			['', '-', '', ''],
+			['-', '', '#', '='],
+			['', '#', '', ''],
+			['', '=', '', ''],
+		],
+	};
+	const matcher = new UllmannGraphMatcher();
+	expect(matcher.isSubgraphIsomorphic(pattern, target)).toBeTruthy();
+	const matches = matcher.findAllSubgraphMonomorphisms(pattern, target);
+	expect(matches.length).toBe(1);
+	expect(matches[0]).toEqual([0, 1, 3]);
+});
