@@ -1,0 +1,47 @@
+{
+  "name": "ac-graph-core-js",
+  "author": {
+    "name": "Marcel Friedrichs"
+  },
+  "description": "Library of different graph algorithms",
+  "homepage": "https://github.com/AstrorEnales/ac-graph-core-js",
+  "repository": {
+    "url": "https://github.com/AstrorEnales/ac-graph-core-js"
+  },
+  "private": true,
+  "version": "1.0.0",
+  "type": "module",
+  "main": "./dist/ac-graph-core-js.umd.cjs",
+  "module": "./dist/ac-graph-core-js.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/ac-graph-core-js.js",
+      "require": "./dist/ac-graph-core-js.umd.cjs"
+    }
+  },
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "tsc && vite build",
+    "test": "vitest",
+    "lint": "eslint .",
+    "lint-fix": "prettier --write ."
+  },
+  "devDependencies": {
+    "@types/node": "^22.14.1",
+    "@typescript-eslint/eslint-plugin": "^8.30.1",
+    "@typescript-eslint/parser": "^8.30.1",
+    "eslint": "^9.24.0",
+    "eslint-config-prettier": "^10.1.2",
+    "eslint-plugin-prettier": "^5.2.6",
+    "prettier": "^3.5.3",
+    "typescript": "~5.7.2",
+    "typescript-eslint": "^8.30.1",
+    "vite": "^6.3.1",
+    "vite-plugin-dts": "^4.5.3",
+    "vitest": "^3.1.1"
+  }
+}
