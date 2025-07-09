@@ -16,16 +16,28 @@ import {Graph} from '..';
  * - Search tree pruning
  */
 export class GraphCanon {
+	public static readonly DefaultNodeKeySuffixGenerator = (
+		graph: Graph,
+		nodeIndex: number
+	): string => {
+		return graph.labels ? graph.labels[nodeIndex] : '';
+	};
+
 	private readonly nodeCount: number;
 	private readonly hasNodeLabels: boolean;
 	private readonly hasEdgeLabels: boolean;
 	private readonly graph: Graph;
 	private readonly nodeNeighbors = new Map<number, number[]>();
-	private readonly nodePropertyKeys = new Map<number, string>();
+	private readonly nodeKeys = new Map<number, string>();
 	private readonly inDegrees = new Map<number, number>();
 	private readonly outDegrees = new Map<number, number>();
 
-	public constructor(graph: Graph) {
+	public constructor(
+		graph: Graph,
+		nodeKeySuffixGenerator: {
+			(graph: Graph, nodeIndex: number): string;
+		} = GraphCanon.DefaultNodeKeySuffixGenerator
+	) {
 		this.graph = graph;
 		this.nodeCount = graph.adjacencyMatrix.length;
 		this.hasNodeLabels = graph.labels !== undefined;
@@ -47,11 +59,9 @@ export class GraphCanon {
 			this.inDegrees.set(i, inDegree);
 			this.outDegrees.set(i, outDegree);
 			this.nodeNeighbors.set(i, [...neighbors]);
-			let propertiesKey = outDegree + '|' + inDegree;
-			if (this.hasNodeLabels) {
-				propertiesKey += '|' + graph.labels![i];
-			}
-			this.nodePropertyKeys.set(i, propertiesKey);
+			const nodeKey =
+				outDegree + '|' + inDegree + nodeKeySuffixGenerator(graph, i);
+			this.nodeKeys.set(i, nodeKey);
 		}
 	}
 
@@ -78,7 +88,7 @@ export class GraphCanon {
 	private partitionByPropertyKeys(nodeCells: number[]) {
 		const propertyKeyNodeIndices = new Map<string, number[]>();
 		for (let i = 0; i < this.nodeCount; i++) {
-			const key = this.nodePropertyKeys.get(i)!;
+			const key = this.nodeKeys.get(i)!;
 			if (propertyKeyNodeIndices.has(key)) {
 				propertyKeyNodeIndices.get(key)!.push(i);
 			} else {
@@ -196,7 +206,7 @@ export class GraphCanon {
 		return cells;
 	}
 
-	private getCellsString(nodeCells: number[]): string {
+	/*private getCellsString(nodeCells: number[]): string {
 		const cells = this.getCurrentCells(nodeCells);
 		const cellIds = Array.from(cells.keys()).sort();
 		let text = '[';
@@ -208,7 +218,7 @@ export class GraphCanon {
 			text += nodeIds.join(' ');
 		}
 		return text + ']';
-	}
+	}*/
 
 	private buildRepresentationGraph(nodeCells: number[]): Graph {
 		const graph: Graph = {
@@ -248,11 +258,18 @@ export class GraphCanon {
 		const edges: string[] = [];
 		for (let i = 0; i < this.nodeCount; i++) {
 			for (let j = 0; j < this.nodeCount; j++) {
-				if (i <= j && graph.adjacencyMatrix[i][j] === 1) {
-					edges.push(i + '-' + j);
+				if (graph.adjacencyMatrix[i][j] === 1) {
+					if (this.hasEdgeLabels) {
+						edges.push(i + '-' + graph.edgeLabels![i][j] + '-' + j);
+					} else {
+						edges.push(i + '-' + j);
+					}
 				}
 			}
 		}
-		return edges.sort().join('|');
+		if (this.hasNodeLabels) {
+			return edges.join('|') + ';' + graph.labels!.join('|');
+		}
+		return edges.join('|');
 	}
 }

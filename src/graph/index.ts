@@ -1,4 +1,5 @@
 export * as matching from './matching';
+export * as canon from './canon';
 export * from './ConnectedComponents';
 
 export interface Graph {
