@@ -1,5 +1,5 @@
 import {describe, it, expect} from 'vitest';
-import ConnectedComponents from './ConnectedComponents';
+import {ConnectedComponents} from './ConnectedComponents';
 import type {Graph} from '.';
 
 describe('find connected components', () => {

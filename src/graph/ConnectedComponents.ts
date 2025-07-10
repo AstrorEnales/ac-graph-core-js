@@ -1,6 +1,6 @@
 import {Graph} from '.';
 
-export default class ConnectedComponents {
+export class ConnectedComponents {
 	public static find(graph: Graph): number[][] {
 		const result: number[][] = [];
 		const visited = new Set<number>();

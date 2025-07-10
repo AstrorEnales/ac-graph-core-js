@@ -1,4 +1,4 @@
 import { Graph } from '.';
-export default class ConnectedComponents {
+export declare class ConnectedComponents {
     static find(graph: Graph): number[][];
 }
