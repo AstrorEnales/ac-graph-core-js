@@ -1,9 +1,9 @@
-var S = Object.defineProperty;
-var w = (g, e, t) => e in g ? S(g, e, { enumerable: !0, configurable: !0, writable: !0, value: t }) : g[e] = t;
-var y = (g, e, t) => w(g, typeof e != "symbol" ? e + "" : e, t);
-class C {
+var w = Object.defineProperty;
+var C = (g, e, t) => e in g ? w(g, e, { enumerable: !0, configurable: !0, writable: !0, value: t }) : g[e] = t;
+var y = (g, e, t) => C(g, typeof e != "symbol" ? e + "" : e, t);
+class S {
 }
-class p extends C {
+class p extends S {
   /**
    * Subgraph isomorphism check
    * @param pattern Pattern graph adjacency matrix
@@ -13,33 +13,33 @@ class p extends C {
     const s = e.adjacencyMatrix.length, n = t.adjacencyMatrix.length;
     if (s > n)
       return !1;
-    const i = e.labels && t.labels, a = Array(n).fill(!1), r = Array(s).fill(-1), u = [], f = [], b = [], M = [];
-    for (let d = 0; d < s; d++) {
-      const o = e.adjacencyMatrix[d];
-      u.push(o.reduce((c, l) => c + l, 0)), f.push(
-        o.map((c, l) => e.adjacencyMatrix[l][d]).reduce((c, l) => c + l, 0)
+    const r = e.labels && t.labels, a = Array(n).fill(!1), i = Array(s).fill(-1), l = [], d = [], h = [], M = [];
+    for (let f = 0; f < s; f++) {
+      const o = e.adjacencyMatrix[f];
+      l.push(o.reduce((u, c) => u + c, 0)), d.push(
+        o.map((u, c) => e.adjacencyMatrix[c][f]).reduce((u, c) => u + c, 0)
       );
     }
-    for (let d = 0; d < n; d++) {
-      const o = t.adjacencyMatrix[d];
-      b.push(o.reduce((c, l) => c + l, 0)), M.push(
-        o.map((c, l) => t.adjacencyMatrix[l][d]).reduce((c, l) => c + l, 0)
+    for (let f = 0; f < n; f++) {
+      const o = t.adjacencyMatrix[f];
+      h.push(o.reduce((u, c) => u + c, 0)), M.push(
+        o.map((u, c) => t.adjacencyMatrix[c][f]).reduce((u, c) => u + c, 0)
       );
     }
-    const j = u.map(
-      (d, o) => b.map((c, l) => c >= d && M[l] >= f[o] && (!i || e.labels[o] === t.labels[l]) ? l : -1).filter((c) => c !== -1)
-    ), x = (d) => {
-      if (d === s)
-        return this.checkCompatibility(e, t, r);
-      for (const o of j[d])
+    const x = l.map(
+      (f, o) => h.map((u, c) => u >= f && M[c] >= d[o] && (!r || e.labels[o] === t.labels[c]) ? c : -1).filter((u) => u !== -1)
+    ), j = (f) => {
+      if (f === s)
+        return this.checkCompatibility(e, t, i);
+      for (const o of x[f])
         if (!a[o]) {
-          if (r[d] = o, a[o] = !0, this.isFeasible(e, t, r, d) && x(d + 1))
+          if (i[f] = o, a[o] = !0, this.isFeasible(e, t, i, f) && j(f + 1))
             return !0;
-          a[o] = !1, r[d] = -1;
+          a[o] = !1, i[f] = -1;
         }
       return !1;
     };
-    return x(0);
+    return j(0);
   }
   /**
    * Collect all possible monomorphisms of the pattern graph in the target graph
@@ -48,42 +48,42 @@ class p extends C {
    * @param target Target graph adjacency matrix
    */
   findAllSubgraphMonomorphisms(e, t) {
-    const s = e.adjacencyMatrix.length, n = t.adjacencyMatrix.length, i = [];
+    const s = e.adjacencyMatrix.length, n = t.adjacencyMatrix.length, r = [];
     if (s > n)
-      return i;
-    const a = e.labels && t.labels, r = Array(n).fill(!1), u = Array(s).fill(-1), f = [], b = [], M = [], j = [];
+      return r;
+    const a = e.labels && t.labels, i = Array(n).fill(!1), l = Array(s).fill(-1), d = [], h = [], M = [], x = [];
     for (let o = 0; o < s; o++) {
-      const c = e.adjacencyMatrix[o];
-      f.push(c.reduce((l, h) => l + h, 0)), b.push(
-        c.map((l, h) => e.adjacencyMatrix[h][o]).reduce((l, h) => l + h, 0)
+      const u = e.adjacencyMatrix[o];
+      d.push(u.reduce((c, b) => c + b, 0)), h.push(
+        u.map((c, b) => e.adjacencyMatrix[b][o]).reduce((c, b) => c + b, 0)
       );
     }
     for (let o = 0; o < n; o++) {
-      const c = t.adjacencyMatrix[o];
-      M.push(c.reduce((l, h) => l + h, 0)), j.push(
-        c.map((l, h) => t.adjacencyMatrix[h][o]).reduce((l, h) => l + h, 0)
+      const u = t.adjacencyMatrix[o];
+      M.push(u.reduce((c, b) => c + b, 0)), x.push(
+        u.map((c, b) => t.adjacencyMatrix[b][o]).reduce((c, b) => c + b, 0)
       );
     }
-    const x = f.map(
-      (o, c) => M.map((l, h) => l >= o && j[h] >= b[c] && (!a || e.labels[c] === t.labels[h]) ? h : -1).filter((l) => l !== -1)
-    ), d = (o) => {
+    const j = d.map(
+      (o, u) => M.map((c, b) => c >= o && x[b] >= h[u] && (!a || e.labels[u] === t.labels[b]) ? b : -1).filter((c) => c !== -1)
+    ), f = (o) => {
       if (o === s) {
-        this.checkCompatibility(e, t, u) && i.push([...u]);
+        this.checkCompatibility(e, t, l) && r.push([...l]);
         return;
       }
-      for (const c of x[o])
-        r[c] || (u[o] = c, r[c] = !0, this.isFeasible(e, t, u, o) && d(o + 1), r[c] = !1, u[o] = -1);
+      for (const u of j[o])
+        i[u] || (l[o] = u, i[u] = !0, this.isFeasible(e, t, l, o) && f(o + 1), i[u] = !1, l[o] = -1);
     };
-    return d(0), i;
+    return f(0), r;
   }
   /**
    * Feasibility check for current depth: preserve pattern edges
    * and edge labels if present
    */
   isFeasible(e, t, s, n) {
-    const i = e.edgeLabels && t.edgeLabels;
+    const r = e.edgeLabels && t.edgeLabels;
     for (let a = 0; a < n; a++)
-      if (e.adjacencyMatrix[n][a] && (!t.adjacencyMatrix[s[n]][s[a]] || i && e.edgeLabels[n][a] !== t.edgeLabels[s[n]][s[a]]) || e.adjacencyMatrix[a][n] && (!t.adjacencyMatrix[s[a]][s[n]] || i && e.edgeLabels[a][n] !== t.edgeLabels[s[a]][s[n]]))
+      if (e.adjacencyMatrix[n][a] && (!t.adjacencyMatrix[s[n]][s[a]] || r && e.edgeLabels[n][a] !== t.edgeLabels[s[n]][s[a]]) || e.adjacencyMatrix[a][n] && (!t.adjacencyMatrix[s[a]][s[n]] || r && e.edgeLabels[a][n] !== t.edgeLabels[s[a]][s[n]]))
         return !1;
     return !0;
   }
@@ -91,17 +91,17 @@ class p extends C {
    * Verifies full structural consistency of the mapping
    */
   checkCompatibility(e, t, s) {
-    const n = e.edgeLabels && t.edgeLabels, i = e.adjacencyMatrix.length;
-    for (let a = 0; a < i; a++)
-      for (let r = 0; r < i; r++)
-        if (e.adjacencyMatrix[a][r] && (!t.adjacencyMatrix[s[a]][s[r]] || n && e.edgeLabels[a][r] !== t.edgeLabels[s[a]][s[r]]))
+    const n = e.edgeLabels && t.edgeLabels, r = e.adjacencyMatrix.length;
+    for (let a = 0; a < r; a++)
+      for (let i = 0; i < r; i++)
+        if (e.adjacencyMatrix[a][i] && (!t.adjacencyMatrix[s[a]][s[i]] || n && e.edgeLabels[a][i] !== t.edgeLabels[s[a]][s[i]]))
           return !1;
     return !0;
   }
 }
 const D = /* @__PURE__ */ Object.freeze(/* @__PURE__ */ Object.defineProperty({
   __proto__: null,
-  GraphMatcher: C,
+  GraphMatcher: S,
   UllmannGraphMatcher: p
 }, Symbol.toStringTag, { value: "Module" })), m = class m {
   constructor(e, t = m.DefaultNodeKeySuffixGenerator) {
@@ -116,33 +116,33 @@ const D = /* @__PURE__ */ Object.freeze(/* @__PURE__ */ Object.defineProperty({
     this.graph = e, this.nodeCount = e.adjacencyMatrix.length, this.hasNodeLabels = e.labels !== void 0, this.hasEdgeLabels = e.edgeLabels !== void 0;
     for (let s = 0; s < this.nodeCount; s++) {
       const n = /* @__PURE__ */ new Set();
-      let i = 0, a = 0;
-      for (let u = 0; u < this.nodeCount; u++)
-        e.adjacencyMatrix[s][u] === 1 && (a++, n.add(u)), e.adjacencyMatrix[u][s] === 1 && (i++, n.add(u));
-      this.inDegrees.set(s, i), this.outDegrees.set(s, a), this.nodeNeighbors.set(s, [...n]);
-      const r = a + "|" + i + t(e, s);
-      this.nodeKeys.set(s, r);
+      let r = 0, a = 0;
+      for (let l = 0; l < this.nodeCount; l++)
+        e.adjacencyMatrix[s][l] === 1 && (a++, n.add(l)), e.adjacencyMatrix[l][s] === 1 && (r++, n.add(l));
+      this.inDegrees.set(s, r), this.outDegrees.set(s, a), this.nodeNeighbors.set(s, [...n]);
+      const i = a + "|" + r + t(e, s);
+      this.nodeKeys.set(s, i);
     }
   }
   canonicalize() {
     const e = new Array(this.nodeCount).fill(1);
     this.partitionByPropertyKeys(e);
-    let t = null, s = null;
-    return this.individualizeDFS(e, [], (n, i) => {
-      const a = this.buildRepresentationGraph(n), r = this.buildGraphString(a);
-      (s === null || r.localeCompare(s) < 0) && (t = a, s = r);
-    }), t;
+    let t = null, s = null, n = null;
+    return this.individualizeDFS(e, [], (r, a) => {
+      const i = this.buildRepresentationGraph(r), l = this.buildGraphString(i);
+      (n === null || l.localeCompare(n) < 0) && (t = i, s = new Array(r.length), r.forEach((d, h) => s[d] = h), n = l);
+    }), [t, n, s];
   }
   partitionByPropertyKeys(e) {
     const t = /* @__PURE__ */ new Map();
     for (let n = 0; n < this.nodeCount; n++) {
-      const i = this.nodeKeys.get(n);
-      t.has(i) ? t.get(i).push(n) : t.set(i, [n]);
+      const r = this.nodeKeys.get(n);
+      t.has(r) ? t.get(r).push(n) : t.set(r, [n]);
     }
     let s = 1;
-    Array.from(t.keys()).sort((n, i) => n.localeCompare(i)).forEach((n) => {
-      const i = t.get(n);
-      i.forEach((a) => e[a] = s), s += i.length;
+    Array.from(t.keys()).sort((n, r) => n.localeCompare(r)).forEach((n) => {
+      const r = t.get(n);
+      r.forEach((a) => e[a] = s), s += r.length;
     });
   }
   isCanon(e) {
@@ -157,13 +157,13 @@ const D = /* @__PURE__ */ Object.freeze(/* @__PURE__ */ Object.defineProperty({
       s(e, t);
       return;
     }
-    const n = this.getCurrentCells(e), i = Array.from(n.entries()).sort(([a], [r]) => a - r).filter(([, a]) => a.length > 1)[0];
-    for (const a of i[1]) {
-      const r = [...e];
-      i[1].forEach((u) => {
-        u !== a && (r[u] = i[0] + 1);
+    const n = this.getCurrentCells(e), r = Array.from(n.entries()).sort(([a], [i]) => a - i).filter(([, a]) => a.length > 1)[0];
+    for (const a of r[1]) {
+      const i = [...e];
+      r[1].forEach((l) => {
+        l !== a && (i[l] = r[0] + 1);
       }), this.individualizeDFS(
-        r,
+        i,
         [...t, a],
         s
       );
@@ -173,24 +173,24 @@ const D = /* @__PURE__ */ Object.freeze(/* @__PURE__ */ Object.defineProperty({
     let t = !1;
     for (; !t; ) {
       t = !0;
-      const s = e.map((a, r) => [this.nodeNeighbors.get(r).map((b) => {
-        let M = e[b].toString();
-        return this.hasEdgeLabels && (M += ";" + this.graph.edgeLabels[r][b] + ";" + this.graph.edgeLabels[b][r]), M;
-      }).sort().join("|"), r]), n = /* @__PURE__ */ new Map();
-      for (const [a, r] of s) {
-        const u = e[r];
-        n.has(u) || n.set(u, /* @__PURE__ */ new Map());
-        const f = n.get(u);
-        f.has(a) || f.set(a, []), f.get(a).push(r);
+      const s = e.map((a, i) => [this.nodeNeighbors.get(i).map((h) => {
+        let M = e[h].toString();
+        return this.hasEdgeLabels && (M += ";" + this.graph.edgeLabels[i][h] + ";" + this.graph.edgeLabels[h][i]), M;
+      }).sort().join("|"), i]), n = /* @__PURE__ */ new Map();
+      for (const [a, i] of s) {
+        const l = e[i];
+        n.has(l) || n.set(l, /* @__PURE__ */ new Map());
+        const d = n.get(l);
+        d.has(a) || d.set(a, []), d.get(a).push(i);
       }
-      const i = Array.from(n.keys()).sort();
-      for (const a of i) {
-        const r = Array.from(n.get(a).entries());
-        if (r.length > 1) {
-          t = !1, r.sort(([f], [b]) => b.localeCompare(f));
-          let u = a;
-          r.forEach(([, f]) => {
-            f.forEach((b) => e[b] = u), u += f.length;
+      const r = Array.from(n.keys()).sort();
+      for (const a of r) {
+        const i = Array.from(n.get(a).entries());
+        if (i.length > 1) {
+          t = !1, i.sort(([d], [h]) => h.localeCompare(d));
+          let l = a;
+          i.forEach(([, d]) => {
+            d.forEach((h) => e[h] = l), l += d.length;
           });
           break;
         }
@@ -249,29 +249,29 @@ const D = /* @__PURE__ */ Object.freeze(/* @__PURE__ */ Object.defineProperty({
 };
 y(m, "DefaultNodeKeySuffixGenerator", (e, t) => e.labels ? e.labels[t] : "");
 let L = m;
-const _ = /* @__PURE__ */ Object.freeze(/* @__PURE__ */ Object.defineProperty({
+const A = /* @__PURE__ */ Object.freeze(/* @__PURE__ */ Object.defineProperty({
   __proto__: null,
   GraphCanon: L
 }, Symbol.toStringTag, { value: "Module" }));
-class A {
+class E {
   static find(e) {
-    const t = [], s = /* @__PURE__ */ new Set(), n = (i, a) => {
-      s.add(i), a.push(i);
-      for (let r = 0; r < e.adjacencyMatrix.length; r++)
-        (e.adjacencyMatrix[i][r] === 1 || e.adjacencyMatrix[r][i] === 1) && (s.has(r) || n(r, a));
+    const t = [], s = /* @__PURE__ */ new Set(), n = (r, a) => {
+      s.add(r), a.push(r);
+      for (let i = 0; i < e.adjacencyMatrix.length; i++)
+        (e.adjacencyMatrix[r][i] === 1 || e.adjacencyMatrix[i][r] === 1) && (s.has(i) || n(i, a));
     };
-    for (let i = 0; i < e.adjacencyMatrix.length; i++)
-      if (!s.has(i)) {
+    for (let r = 0; r < e.adjacencyMatrix.length; r++)
+      if (!s.has(r)) {
         const a = [];
-        n(i, a), t.push(a);
+        n(r, a), t.push(a);
       }
     return t;
   }
 }
 const I = /* @__PURE__ */ Object.freeze(/* @__PURE__ */ Object.defineProperty({
   __proto__: null,
-  ConnectedComponents: A,
-  canon: _,
+  ConnectedComponents: E,
+  canon: A,
   matching: D
 }, Symbol.toStringTag, { value: "Module" }));
 export {

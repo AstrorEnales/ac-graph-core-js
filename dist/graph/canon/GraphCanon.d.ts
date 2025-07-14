@@ -1,4 +1,5 @@
 import { Graph } from '..';
+import { Mapping } from '../matching';
 /**
  * Nauty graph canonicalization using the following graph properties
  * for ordering and selection:
@@ -27,7 +28,7 @@ export declare class GraphCanon {
     constructor(graph: Graph, nodeKeySuffixGenerator?: {
         (graph: Graph, nodeIndex: number): string;
     });
-    canonicalize(): Graph;
+    canonicalize(): [Graph, string, Mapping];
     private partitionByPropertyKeys;
     private isCanon;
     private individualizeDFS;

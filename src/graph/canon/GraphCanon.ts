@@ -1,4 +1,5 @@
 import {Graph} from '..';
+import {Mapping} from '../matching';
 
 /**
  * Nauty graph canonicalization using the following graph properties
@@ -65,10 +66,11 @@ export class GraphCanon {
 		}
 	}
 
-	public canonicalize(): Graph {
+	public canonicalize(): [Graph, string, Mapping] {
 		const nodeCells = new Array(this.nodeCount).fill(1);
 		this.partitionByPropertyKeys(nodeCells);
 		let lexSmallestGraph: Graph | null = null;
+		let lexSmallestMapping: Mapping | null = null;
 		let lexSmallestGraphString: string | null = null;
 		this.individualizeDFS(nodeCells, [], (repNodeCells, _repSuffix) => {
 			// TODO: find automorphisms and prune search tree
@@ -79,10 +81,12 @@ export class GraphCanon {
 				repGraphString.localeCompare(lexSmallestGraphString) < 0
 			) {
 				lexSmallestGraph = repGraph;
+				lexSmallestMapping = new Array(repNodeCells.length);
+				repNodeCells.forEach((cell, i) => (lexSmallestMapping![cell] = i));
 				lexSmallestGraphString = repGraphString;
 			}
 		});
-		return lexSmallestGraph!;
+		return [lexSmallestGraph!, lexSmallestGraphString!, lexSmallestMapping!];
 	}
 
 	private partitionByPropertyKeys(nodeCells: number[]) {
