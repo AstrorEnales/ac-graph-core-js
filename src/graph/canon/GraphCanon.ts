@@ -82,7 +82,7 @@ export class GraphCanon {
 			) {
 				lexSmallestGraph = repGraph;
 				lexSmallestMapping = new Array(repNodeCells.length);
-				repNodeCells.forEach((cell, i) => (lexSmallestMapping![cell] = i));
+				repNodeCells.forEach((cell, i) => (lexSmallestMapping![cell - 1] = i));
 				lexSmallestGraphString = repGraphString;
 			}
 		});

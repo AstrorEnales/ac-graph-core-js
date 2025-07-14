@@ -49,13 +49,12 @@ function testAllPermutations(graph: Graph) {
 
 function testPermutations(graph: Graph, permutations: number[][]) {
 	const canon = new GraphCanon(graph);
-	const [canonGraph] = canon.canonicalize();
-	const canonGraphString = canon.buildGraphString(canonGraph);
+	const [, canonGraphString] = canon.canonicalize();
 	permutations.forEach((perm) => {
 		const permGraph = applyPermutationToGraph(graph, perm);
 		const permCanon = new GraphCanon(permGraph);
-		const [canonGraph] = permCanon.canonicalize();
-		expect(permCanon.buildGraphString(canonGraph)).toBe(canonGraphString);
+		const [, permCanonGraphString] = permCanon.canonicalize();
+		expect(permCanonGraphString).toBe(canonGraphString);
 	});
 }
 

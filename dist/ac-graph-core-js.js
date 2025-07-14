@@ -130,7 +130,7 @@ const D = /* @__PURE__ */ Object.freeze(/* @__PURE__ */ Object.defineProperty({
     let t = null, s = null, n = null;
     return this.individualizeDFS(e, [], (r, a) => {
       const i = this.buildRepresentationGraph(r), l = this.buildGraphString(i);
-      (n === null || l.localeCompare(n) < 0) && (t = i, s = new Array(r.length), r.forEach((d, h) => s[d] = h), n = l);
+      (n === null || l.localeCompare(n) < 0) && (t = i, s = new Array(r.length), r.forEach((d, h) => s[d - 1] = h), n = l);
     }), [t, n, s];
   }
   partitionByPropertyKeys(e) {
