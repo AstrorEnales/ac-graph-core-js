@@ -8,7 +8,12 @@ export class UllmannGraphMatcher extends GraphMatcher {
 	 * @param pattern Pattern graph adjacency matrix
 	 * @param target Target graph adjacency matrix
 	 */
-	public override isSubgraphIsomorphic(pattern: Graph, target: Graph): boolean {
+	public override isSubgraphIsomorphic(
+		pattern: Graph,
+		target: Graph,
+		nodeLabelWildcards: number[] = [],
+		edgeLabelWildcards: string[] = []
+	): boolean {
 		// Number of nodes in the pattern graph
 		const n = pattern.adjacencyMatrix.length;
 		// Number of nodes in the target graph
@@ -21,36 +26,24 @@ export class UllmannGraphMatcher extends GraphMatcher {
 		// Track which target nodes are already used in the mapping
 		const used = Array(m).fill(false);
 		const mapping = Array(n).fill(-1);
+		const nodeLabelWildcardsSet = new Set(nodeLabelWildcards);
+		const edgeLabelWildcardsSet = new Set(edgeLabelWildcards);
 		// Pre-compute degrees for pattern and target nodes
-		const patternInDegrees: number[] = [];
-		const patternOutDegrees: number[] = [];
-		const targetInDegrees: number[] = [];
-		const targetOutDegrees: number[] = [];
-		for (let i = 0; i < n; i++) {
-			const row = pattern.adjacencyMatrix[i];
-			patternInDegrees.push(row.reduce((a, b) => a + b, 0));
-			patternOutDegrees.push(
-				row
-					.map((_, j) => pattern.adjacencyMatrix[j][i])
-					.reduce((a, b) => a + b, 0)
-			);
-		}
-		for (let i = 0; i < m; i++) {
-			const row = target.adjacencyMatrix[i];
-			targetInDegrees.push(row.reduce((a, b) => a + b, 0));
-			targetOutDegrees.push(
-				row
-					.map((_, j) => target.adjacencyMatrix[j][i])
-					.reduce((a, b) => a + b, 0)
-			);
-		}
+		const [
+			patternInDegrees,
+			patternOutDegrees,
+			targetInDegrees,
+			targetOutDegrees,
+		] = this.getInOutDegrees(pattern, target);
 		// Pre-compute candidate domains for pattern nodes based on degree
 		const domains: number[][] = patternInDegrees.map((pd, i) =>
 			targetInDegrees
 				.map((td, j) => {
 					return td >= pd &&
 						targetOutDegrees[j] >= patternOutDegrees[i] &&
-						(!isLabeled || pattern.labels![i] === target.labels![j])
+						(!isLabeled ||
+							nodeLabelWildcardsSet.has(i) ||
+							pattern.labels![i] === target.labels![j])
 						? j
 						: -1;
 				})
@@ -59,14 +52,25 @@ export class UllmannGraphMatcher extends GraphMatcher {
 		// Recursive backtracking function to try all injective mappings
 		const match = (depth: number): boolean => {
 			if (depth === n) {
-				return this.checkCompatibility(pattern, target, mapping);
+				return this.checkCompatibility(
+					pattern,
+					target,
+					mapping,
+					edgeLabelWildcardsSet
+				);
 			}
 			for (const candidate of domains[depth]) {
 				if (!used[candidate]) {
 					mapping[depth] = candidate;
 					used[candidate] = true;
 					if (
-						this.isFeasible(pattern, target, mapping, depth) &&
+						this.isFeasible(
+							pattern,
+							target,
+							mapping,
+							depth,
+							edgeLabelWildcardsSet
+						) &&
 						match(depth + 1)
 					) {
 						return true;
@@ -81,6 +85,40 @@ export class UllmannGraphMatcher extends GraphMatcher {
 		return match(0);
 	}
 
+	private getInOutDegrees(
+		pattern: Graph,
+		target: Graph
+	): [number[], number[], number[], number[]] {
+		const patternInDegrees = pattern.adjacencyMatrix.map((r) =>
+			r.reduce((a, b) => a + b, 0)
+		);
+		const patternOutDegrees: number[] = [];
+		const targetInDegrees = target.adjacencyMatrix.map((r) =>
+			r.reduce((a, b) => a + b, 0)
+		);
+		const targetOutDegrees: number[] = [];
+		pattern.adjacencyMatrix.forEach((row, i) => {
+			patternOutDegrees.push(
+				row
+					.map((_, j) => pattern.adjacencyMatrix[j][i])
+					.reduce((a, b) => a + b, 0)
+			);
+		});
+		target.adjacencyMatrix.forEach((row, i) => {
+			targetOutDegrees.push(
+				row
+					.map((_, j) => target.adjacencyMatrix[j][i])
+					.reduce((a, b) => a + b, 0)
+			);
+		});
+		return [
+			patternInDegrees,
+			patternOutDegrees,
+			targetInDegrees,
+			targetOutDegrees,
+		];
+	}
+
 	/**
 	 * Collect all possible monomorphisms of the pattern graph in the target graph
 	 * including symmetries
@@ -89,45 +127,35 @@ export class UllmannGraphMatcher extends GraphMatcher {
 	 */
 	public override findAllSubgraphMonomorphisms(
 		pattern: Graph,
-		target: Graph
+		target: Graph,
+		nodeLabelWildcards: number[] = [],
+		edgeLabelWildcards: string[] = []
 	): Mapping[] {
 		const n = pattern.adjacencyMatrix.length;
 		const m = target.adjacencyMatrix.length;
 		const results: Mapping[] = [];
+		const nodeLabelWildcardsSet = new Set(nodeLabelWildcards);
+		const edgeLabelWildcardsSet = new Set(edgeLabelWildcards);
 		if (n > m) {
 			return results;
 		}
 		const isLabeled = pattern.labels && target.labels;
 		const used = Array(m).fill(false);
 		const mapping = Array(n).fill(-1);
-		const patternInDegrees: number[] = [];
-		const patternOutDegrees: number[] = [];
-		const targetInDegrees: number[] = [];
-		const targetOutDegrees: number[] = [];
-		for (let i = 0; i < n; i++) {
-			const row = pattern.adjacencyMatrix[i];
-			patternInDegrees.push(row.reduce((a, b) => a + b, 0));
-			patternOutDegrees.push(
-				row
-					.map((_, j) => pattern.adjacencyMatrix[j][i])
-					.reduce((a, b) => a + b, 0)
-			);
-		}
-		for (let i = 0; i < m; i++) {
-			const row = target.adjacencyMatrix[i];
-			targetInDegrees.push(row.reduce((a, b) => a + b, 0));
-			targetOutDegrees.push(
-				row
-					.map((_, j) => target.adjacencyMatrix[j][i])
-					.reduce((a, b) => a + b, 0)
-			);
-		}
+		const [
+			patternInDegrees,
+			patternOutDegrees,
+			targetInDegrees,
+			targetOutDegrees,
+		] = this.getInOutDegrees(pattern, target);
 		const domains: number[][] = patternInDegrees.map((pd, i) =>
 			targetInDegrees
 				.map((td, j) => {
 					return td >= pd &&
 						targetOutDegrees[j] >= patternOutDegrees[i] &&
-						(!isLabeled || pattern.labels![i] === target.labels![j])
+						(!isLabeled ||
+							nodeLabelWildcardsSet.has(i) ||
+							pattern.labels![i] === target.labels![j])
 						? j
 						: -1;
 				})
@@ -135,7 +163,14 @@ export class UllmannGraphMatcher extends GraphMatcher {
 		);
 		const match = (depth: number): void => {
 			if (depth === n) {
-				if (this.checkCompatibility(pattern, target, mapping)) {
+				if (
+					this.checkCompatibility(
+						pattern,
+						target,
+						mapping,
+						edgeLabelWildcardsSet
+					)
+				) {
 					results.push([...mapping]);
 				}
 				return;
@@ -144,7 +179,15 @@ export class UllmannGraphMatcher extends GraphMatcher {
 				if (!used[candidate]) {
 					mapping[depth] = candidate;
 					used[candidate] = true;
-					if (this.isFeasible(pattern, target, mapping, depth)) {
+					if (
+						this.isFeasible(
+							pattern,
+							target,
+							mapping,
+							depth,
+							edgeLabelWildcardsSet
+						)
+					) {
 						match(depth + 1);
 					}
 					used[candidate] = false;
@@ -164,7 +207,8 @@ export class UllmannGraphMatcher extends GraphMatcher {
 		pattern: Graph,
 		target: Graph,
 		mapping: Mapping,
-		depth: number
+		depth: number,
+		edgeLabelWildcardsSet: Set<string>
 	): boolean {
 		const isEdgeLabeled = pattern.edgeLabels && target.edgeLabels;
 		// Check that all edges in the current partial mapping are preserved
@@ -176,6 +220,7 @@ export class UllmannGraphMatcher extends GraphMatcher {
 				// Check edge labels if present
 				if (
 					isEdgeLabeled &&
+					!edgeLabelWildcardsSet.has(depth + ',' + i) &&
 					pattern.edgeLabels![depth][i] !==
 						target.edgeLabels![mapping[depth]][mapping[i]]
 				) {
@@ -189,6 +234,7 @@ export class UllmannGraphMatcher extends GraphMatcher {
 				// Check edge labels if present
 				if (
 					isEdgeLabeled &&
+					!edgeLabelWildcardsSet.has(i + ',' + depth) &&
 					pattern.edgeLabels![i][depth] !==
 						target.edgeLabels![mapping[i]][mapping[depth]]
 				) {
@@ -205,7 +251,8 @@ export class UllmannGraphMatcher extends GraphMatcher {
 	private checkCompatibility(
 		pattern: Graph,
 		target: Graph,
-		mapping: Mapping
+		mapping: Mapping,
+		edgeLabelWildcardsSet: Set<string>
 	): boolean {
 		const isEdgeLabeled = pattern.edgeLabels && target.edgeLabels;
 		const n = pattern.adjacencyMatrix.length;
@@ -218,6 +265,7 @@ export class UllmannGraphMatcher extends GraphMatcher {
 					}
 					if (
 						isEdgeLabeled &&
+						!edgeLabelWildcardsSet.has(i + ',' + j) &&
 						pattern.edgeLabels![i][j] !==
 							target.edgeLabels![mapping[i]][mapping[j]]
 					) {
