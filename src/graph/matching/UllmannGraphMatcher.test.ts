@@ -228,3 +228,32 @@ test('subgraph isomorphism with wildcard edge labels', () => {
 	expect(matches[2]).toEqual([0, 2, 1]);
 	expect(matches[3]).toEqual([0, 2, 3]);
 });
+
+test('all subgraph isomorphism matches with partial mapping', () => {
+	const pattern: Graph = {
+		adjacencyMatrix: [
+			[0, 1, 0],
+			[1, 0, 1],
+			[0, 1, 0],
+		],
+	};
+	const target: Graph = {
+		adjacencyMatrix: [
+			[0, 1, 0, 0],
+			[1, 0, 1, 1],
+			[0, 1, 0, 0],
+			[0, 1, 0, 0],
+		],
+	};
+	const matcher = new UllmannGraphMatcher();
+	const matches = matcher.findAllSubgraphMonomorphisms(
+		pattern,
+		target,
+		undefined,
+		undefined,
+		[2, -1, -1]
+	);
+	expect(matches.length).toBe(2);
+	expect(matches).toContainEqual([2, 1, 3]);
+	expect(matches).toContainEqual([2, 1, 0]);
+});

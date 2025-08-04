@@ -7,12 +7,22 @@ export class UllmannGraphMatcher extends GraphMatcher {
 	 * Subgraph isomorphism check
 	 * @param pattern Pattern graph adjacency matrix
 	 * @param target Target graph adjacency matrix
+	 * @param nodeLabelWildcards Indices of pattern nodes considered wildcards
+	 * for labelled graphs. Their label is ignored during validation.
+	 * @param edgeLabelWildcards Indices of pattern edges considered wildcards
+	 * for labelled graphs. Their label is ignored during validation. Encoded
+	 * as "sourceIndex + ',' + targetIndex".
+	 * @param partialMapping Partial mapping of pattern nodes in target to only
+	 * find solutions containing this mapping. The array needs to follow the
+	 * same format as the Mapping type. Nodes not fixed in the partial mapping
+	 * are represented by -1.
 	 */
 	public override isSubgraphIsomorphic(
 		pattern: Graph,
 		target: Graph,
 		nodeLabelWildcards: number[] = [],
-		edgeLabelWildcards: string[] = []
+		edgeLabelWildcards: string[] = [],
+		partialMapping: number[] | null = null
 	): boolean {
 		// Number of nodes in the pattern graph
 		const n = pattern.adjacencyMatrix.length;
@@ -21,6 +31,9 @@ export class UllmannGraphMatcher extends GraphMatcher {
 		// If pattern is larger than target, no mapping is possible
 		if (n > m) {
 			return false;
+		}
+		if (partialMapping === null) {
+			partialMapping = new Array<number>(n).fill(-1);
 		}
 		const isLabeled = pattern.labels && target.labels;
 		// Track which target nodes are already used in the mapping
@@ -41,6 +54,7 @@ export class UllmannGraphMatcher extends GraphMatcher {
 				.map((td, j) => {
 					return td >= pd &&
 						targetOutDegrees[j] >= patternOutDegrees[i] &&
+						(partialMapping[i] === -1 || partialMapping[i] === j) &&
 						(!isLabeled ||
 							nodeLabelWildcardsSet.has(i) ||
 							pattern.labels![i] === target.labels![j])
@@ -124,12 +138,22 @@ export class UllmannGraphMatcher extends GraphMatcher {
 	 * including symmetries
 	 * @param pattern Pattern graph adjacency matrix
 	 * @param target Target graph adjacency matrix
+	 * @param nodeLabelWildcards Indices of pattern nodes considered wildcards
+	 * for labelled graphs. Their label is ignored during validation.
+	 * @param edgeLabelWildcards Indices of pattern edges considered wildcards
+	 * for labelled graphs. Their label is ignored during validation. Encoded
+	 * as "sourceIndex + ',' + targetIndex".
+	 * @param partialMapping Partial mapping of pattern nodes in target to only
+	 * find solutions containing this mapping. The array needs to follow the
+	 * same format as the Mapping type. Nodes not fixed in the partial mapping
+	 * are represented by -1.
 	 */
 	public override findAllSubgraphMonomorphisms(
 		pattern: Graph,
 		target: Graph,
 		nodeLabelWildcards: number[] = [],
-		edgeLabelWildcards: string[] = []
+		edgeLabelWildcards: string[] = [],
+		partialMapping: number[] | null = null
 	): Mapping[] {
 		const n = pattern.adjacencyMatrix.length;
 		const m = target.adjacencyMatrix.length;
@@ -138,6 +162,9 @@ export class UllmannGraphMatcher extends GraphMatcher {
 		const edgeLabelWildcardsSet = new Set(edgeLabelWildcards);
 		if (n > m) {
 			return results;
+		}
+		if (partialMapping === null) {
+			partialMapping = new Array<number>(n).fill(-1);
 		}
 		const isLabeled = pattern.labels && target.labels;
 		const used = Array(m).fill(false);
@@ -153,6 +180,7 @@ export class UllmannGraphMatcher extends GraphMatcher {
 				.map((td, j) => {
 					return td >= pd &&
 						targetOutDegrees[j] >= patternOutDegrees[i] &&
+						(partialMapping[i] === -1 || partialMapping[i] === j) &&
 						(!isLabeled ||
 							nodeLabelWildcardsSet.has(i) ||
 							pattern.labels![i] === target.labels![j])
