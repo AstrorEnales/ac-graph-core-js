@@ -92,7 +92,7 @@ export class GraphCanon {
 			this.outDegrees.set(i, outDegree);
 			this.nodeNeighbors.set(i, [...neighbors]);
 			const nodeKey =
-				outDegree + '|' + inDegree + nodeKeySuffixGenerator(graph, i);
+				outDegree + '|' + inDegree + '|' + nodeKeySuffixGenerator(graph, i);
 			this.nodeKeys.set(i, nodeKey);
 		}
 	}

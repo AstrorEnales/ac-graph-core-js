@@ -236,8 +236,9 @@ test('undirected labeled graph canon with index-dependant property', () => {
 			['-', '', '', '', ''],
 		],
 	};
-	const nodeKeySuffixGenerator: NodeKeySuffixGenerator = (graph, nodeIndex) =>
-		graph.nodeProperties![nodeIndex] ? 'tetrahedral!' : '';
+	const nodeKeySuffixGenerator: NodeKeySuffixGenerator = (g, nodeIndex) =>
+		(g.labels ? g.labels[nodeIndex] : '') +
+		(g.nodeProperties![nodeIndex] ? 'tetrahedral!' : '');
 	const nodePropertiesMapper: NodePropertiesMapper = (
 		g,
 		nodeIndex,
