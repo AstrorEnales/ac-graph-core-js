@@ -1,6 +1,11 @@
 import {test, expect} from 'vitest';
 import {Graph} from '..';
-import {GraphCanon} from './GraphCanon';
+import {
+	GraphCanon,
+	NodeKeySuffixGenerator,
+	NodePropertiesCanonKeyMapper,
+	NodePropertiesMapper,
+} from './GraphCanon';
 
 function getAllPermutations<T>(array: T[]): T[][] {
 	if (array.length === 0) {
@@ -204,4 +209,89 @@ test('undirected node-labeled graph canon', () => {
 		labels: ['A', 'B', 'B', 'A', 'C', 'C'],
 	};
 	testAllPermutations(graph);
+});
+
+test('undirected labeled graph canon with index-dependant property', () => {
+	const graph: Graph = {
+		adjacencyMatrix: [
+			[0, 1, 1, 1, 1],
+			[1, 0, 0, 0, 0],
+			[1, 0, 0, 0, 0],
+			[1, 0, 0, 0, 0],
+			[1, 0, 0, 0, 0],
+		],
+		labels: ['A', 'B', 'C', 'D', 'E'],
+		nodeProperties: [
+			new Map([['stereo', 'tetrahedral[1, 2, 3, 4]!']]),
+			undefined,
+			undefined,
+			undefined,
+			undefined,
+		],
+		edgeLabels: [
+			['', '-', '-', '-', '-'],
+			['-', '', '', '', ''],
+			['-', '', '', '', ''],
+			['-', '', '', '', ''],
+			['-', '', '', '', ''],
+		],
+	};
+	const nodeKeySuffixGenerator: NodeKeySuffixGenerator = (graph, nodeIndex) =>
+		graph.nodeProperties![nodeIndex] ? 'tetrahedral!' : '';
+	const nodePropertiesMapper: NodePropertiesMapper = (
+		g,
+		nodeIndex,
+		nodeMapping
+	) => {
+		const p = g.nodeProperties![nodeIndex];
+		if (p) {
+			const stereo = p.get('stereo')! as string;
+			const stereoParts = stereo.split(/[\[,\]]/);
+			const mappedStereo =
+				stereoParts[0] +
+				'[' +
+				stereoParts
+					.slice(1, stereoParts.length - 1)
+					.map((i) => nodeMapping[parseInt(i)])
+					.join(', ') +
+				']' +
+				stereoParts[stereoParts.length - 1];
+			return new Map([['stereo', mappedStereo]]);
+		}
+		return undefined;
+	};
+	const nodePropertiesCanonKeyMapper: NodePropertiesCanonKeyMapper = (
+		g,
+		nodeIndex
+	) =>
+		g.nodeProperties && g.nodeProperties[nodeIndex]
+			? 'stereo:' + g.nodeProperties[nodeIndex].get('stereo')!
+			: '';
+	const permutations = getAllPermutations([
+		...Array(graph.adjacencyMatrix.length).keys(),
+	]);
+	const canon = new GraphCanon(
+		graph,
+		nodeKeySuffixGenerator,
+		nodePropertiesMapper,
+		nodePropertiesCanonKeyMapper
+	);
+	const [, canonGraphString] = canon.canonicalize();
+	expect(canonGraphString).toBe(
+		'0---4|1---4|2---4|3---4|4---0|4---1|4---2|4---3;B|C|D|E|A{stereo:tetrahedral[0, 1, 2, 3]!}'
+	);
+	permutations.forEach((perm) => {
+		const permGraph = applyPermutationToGraph(graph, perm);
+		permGraph.nodeProperties = graph.nodeProperties!.map((_, i) =>
+			nodePropertiesMapper(graph, perm.indexOf(i), perm)
+		);
+		const permCanon = new GraphCanon(
+			permGraph,
+			nodeKeySuffixGenerator,
+			nodePropertiesMapper,
+			nodePropertiesCanonKeyMapper
+		);
+		const [, permCanonGraphString] = permCanon.canonicalize();
+		expect(permCanonGraphString).toBe(canonGraphString);
+	});
 });

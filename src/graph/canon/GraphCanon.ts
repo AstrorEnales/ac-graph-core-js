@@ -1,6 +1,20 @@
 import {Graph} from '..';
 import {Mapping} from '../matching';
 
+export type NodeKeySuffixGenerator = (
+	graph: Graph,
+	nodeIndex: number
+) => string;
+export type NodePropertiesMapper = (
+	graph: Graph,
+	nodeIndex: number,
+	nodeMapping: number[]
+) => Map<string, any> | undefined;
+export type NodePropertiesCanonKeyMapper = (
+	graph: Graph,
+	nodeIndex: number
+) => string;
+
 /**
  * Nauty graph canonicalization using the following graph properties
  * for ordering and selection:
@@ -17,32 +31,49 @@ import {Mapping} from '../matching';
  * - Search tree pruning
  */
 export class GraphCanon {
-	public static readonly DefaultNodeKeySuffixGenerator = (
+	public static readonly DefaultNodeKeySuffixGenerator: NodeKeySuffixGenerator =
+		(graph: Graph, nodeIndex: number) => {
+			return graph.labels ? graph.labels[nodeIndex] : '';
+		};
+	public static readonly DefaultNodePropertiesMapper: NodePropertiesMapper = (
 		graph: Graph,
-		nodeIndex: number
-	): string => {
-		return graph.labels ? graph.labels[nodeIndex] : '';
+		nodeIndex: number,
+		_nodeMapping: number[]
+	) => {
+		return graph.nodeProperties && graph.nodeProperties[nodeIndex]
+			? new Map(graph.nodeProperties[nodeIndex])
+			: undefined;
 	};
+	public static readonly DefaultNodePropertiesCanonKeyMapper: NodePropertiesCanonKeyMapper =
+		(_graph: Graph, _nodeIndex: number) => {
+			return '';
+		};
 
 	private readonly nodeCount: number;
 	private readonly hasNodeLabels: boolean;
+	private readonly hasNodeProperties: boolean;
 	private readonly hasEdgeLabels: boolean;
 	private readonly graph: Graph;
 	private readonly nodeNeighbors = new Map<number, number[]>();
 	private readonly nodeKeys = new Map<number, string>();
 	private readonly inDegrees = new Map<number, number>();
 	private readonly outDegrees = new Map<number, number>();
+	private readonly nodePropertiesMapper: NodePropertiesMapper;
+	private readonly nodePropertiesCanonKeyMapper: NodePropertiesCanonKeyMapper;
 
 	public constructor(
 		graph: Graph,
-		nodeKeySuffixGenerator: {
-			(graph: Graph, nodeIndex: number): string;
-		} = GraphCanon.DefaultNodeKeySuffixGenerator
+		nodeKeySuffixGenerator: NodeKeySuffixGenerator = GraphCanon.DefaultNodeKeySuffixGenerator,
+		nodePropertiesMapper: NodePropertiesMapper = GraphCanon.DefaultNodePropertiesMapper,
+		nodePropertiesCanonKeyMapper: NodePropertiesCanonKeyMapper = GraphCanon.DefaultNodePropertiesCanonKeyMapper
 	) {
 		this.graph = graph;
 		this.nodeCount = graph.adjacencyMatrix.length;
 		this.hasNodeLabels = graph.labels !== undefined;
+		this.hasNodeProperties = graph.nodeProperties !== undefined;
 		this.hasEdgeLabels = graph.edgeLabels !== undefined;
+		this.nodePropertiesMapper = nodePropertiesMapper;
+		this.nodePropertiesCanonKeyMapper = nodePropertiesCanonKeyMapper;
 		for (let i = 0; i < this.nodeCount; i++) {
 			const neighbors = new Set<number>();
 			let inDegree = 0;
@@ -225,6 +256,7 @@ export class GraphCanon {
 	}*/
 
 	private buildRepresentationGraph(nodeCells: number[]): Graph {
+		const nodeMapping = nodeCells.map((c) => c - 1);
 		const graph: Graph = {
 			adjacencyMatrix: Array.from(
 				{length: this.nodeCount},
@@ -233,14 +265,23 @@ export class GraphCanon {
 		};
 		for (let i = 0; i < this.nodeCount; i++) {
 			for (let j = 0; j < this.nodeCount; j++) {
-				graph.adjacencyMatrix[nodeCells[i] - 1][nodeCells[j] - 1] =
+				graph.adjacencyMatrix[nodeMapping[i]][nodeMapping[j]] =
 					this.graph.adjacencyMatrix[i][j];
 			}
 		}
 		if (this.hasNodeLabels) {
 			graph.labels = new Array(this.nodeCount);
-			nodeCells.forEach(
-				(c, i) => (graph.labels![c - 1] = this.graph.labels![i])
+			nodeMapping.forEach((c, i) => (graph.labels![c] = this.graph.labels![i]));
+		}
+		if (this.hasNodeProperties) {
+			graph.nodeProperties = new Array(this.nodeCount);
+			nodeMapping.forEach(
+				(c, i) =>
+					(graph.nodeProperties![c] = this.nodePropertiesMapper(
+						this.graph,
+						i,
+						nodeMapping
+					))
 			);
 		}
 		if (this.hasEdgeLabels) {
@@ -250,7 +291,7 @@ export class GraphCanon {
 			);
 			for (let i = 0; i < this.nodeCount; i++) {
 				for (let j = 0; j < this.nodeCount; j++) {
-					graph.edgeLabels[nodeCells[i] - 1][nodeCells[j] - 1] =
+					graph.edgeLabels[nodeMapping[i]][nodeMapping[j]] =
 						this.graph.edgeLabels![i][j];
 				}
 			}
@@ -271,9 +312,37 @@ export class GraphCanon {
 				}
 			}
 		}
-		if (this.hasNodeLabels) {
-			return edges.join('|') + ';' + graph.labels!.join('|');
+		let result = edges.join('|');
+		if (this.hasNodeLabels && this.hasNodeProperties) {
+			return (
+				edges.join('|') +
+				';' +
+				graph
+					.labels!.map((l, i) => {
+						const nodePropertyCanonKey = this.nodePropertiesCanonKeyMapper(
+							graph,
+							i
+						);
+						return (
+							l +
+							(nodePropertyCanonKey.length > 0
+								? '{' + nodePropertyCanonKey + '}'
+								: '')
+						);
+					})
+					.join('|')
+			);
+		} else if (this.hasNodeLabels) {
+			result += ';' + graph.labels!.join('|');
+		} else if (this.hasNodeProperties) {
+			result +=
+				';' +
+				graph
+					.nodeProperties!.map((_, i) =>
+						this.nodePropertiesCanonKeyMapper(graph, i)
+					)
+					.join('|');
 		}
-		return edges.join('|');
+		return result;
 	}
 }

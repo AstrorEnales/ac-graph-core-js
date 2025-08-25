@@ -9,7 +9,7 @@
     "url": "https://github.com/AstrorEnales/ac-graph-core-js"
   },
   "private": true,
-  "version": "1.1.0",
+  "version": "1.2.0",
   "type": "module",
   "main": "./dist/ac-graph-core-js.umd.cjs",
   "module": "./dist/ac-graph-core-js.js",

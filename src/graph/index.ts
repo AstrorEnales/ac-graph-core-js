@@ -12,6 +12,10 @@ export interface Graph {
 	 */
 	labels?: string[];
 	/**
+	 * Optional node properties
+	 */
+	nodeProperties?: (Map<string, any> | undefined)[];
+	/**
 	 * Optional edge labels
 	 */
 	edgeLabels?: string[][];

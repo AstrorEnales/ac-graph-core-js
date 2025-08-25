@@ -1,5 +1,8 @@
 import { Graph } from '..';
 import { Mapping } from '../matching';
+export type NodeKeySuffixGenerator = (graph: Graph, nodeIndex: number) => string;
+export type NodePropertiesMapper = (graph: Graph, nodeIndex: number, nodeMapping: number[]) => Map<string, any> | undefined;
+export type NodePropertiesCanonKeyMapper = (graph: Graph, nodeIndex: number) => string;
 /**
  * Nauty graph canonicalization using the following graph properties
  * for ordering and selection:
@@ -16,18 +19,21 @@ import { Mapping } from '../matching';
  * - Search tree pruning
  */
 export declare class GraphCanon {
-    static readonly DefaultNodeKeySuffixGenerator: (graph: Graph, nodeIndex: number) => string;
+    static readonly DefaultNodeKeySuffixGenerator: NodeKeySuffixGenerator;
+    static readonly DefaultNodePropertiesMapper: NodePropertiesMapper;
+    static readonly DefaultNodePropertiesCanonKeyMapper: NodePropertiesCanonKeyMapper;
     private readonly nodeCount;
     private readonly hasNodeLabels;
+    private readonly hasNodeProperties;
     private readonly hasEdgeLabels;
     private readonly graph;
     private readonly nodeNeighbors;
     private readonly nodeKeys;
     private readonly inDegrees;
     private readonly outDegrees;
-    constructor(graph: Graph, nodeKeySuffixGenerator?: {
-        (graph: Graph, nodeIndex: number): string;
-    });
+    private readonly nodePropertiesMapper;
+    private readonly nodePropertiesCanonKeyMapper;
+    constructor(graph: Graph, nodeKeySuffixGenerator?: NodeKeySuffixGenerator, nodePropertiesMapper?: NodePropertiesMapper, nodePropertiesCanonKeyMapper?: NodePropertiesCanonKeyMapper);
     canonicalize(): [Graph, string, Mapping];
     private partitionByPropertyKeys;
     private isCanon;
