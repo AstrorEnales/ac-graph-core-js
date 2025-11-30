@@ -52,8 +52,6 @@ export class GraphCanon {
 	private readonly graph: Graph;
 	private readonly nodeNeighbors = new Map<number, number[]>();
 	private readonly nodeKeys = new Map<number, string>();
-	private readonly inDegrees = new Map<number, number>();
-	private readonly outDegrees = new Map<number, number>();
 	private readonly nodePropertiesMapper: NodePropertiesMapper;
 	private readonly nodePropertiesCanonKeyMapper: NodePropertiesCanonKeyMapper;
 
@@ -84,8 +82,6 @@ export class GraphCanon {
 					neighbors.add(j);
 				}
 			}
-			this.inDegrees.set(i, inDegree);
-			this.outDegrees.set(i, outDegree);
 			this.nodeNeighbors.set(i, [...neighbors]);
 			const nodeKey =
 				outDegree + '|' + inDegree + '|' + nodeKeySuffixGenerator(graph, i);
@@ -180,28 +176,23 @@ export class GraphCanon {
 			handleRepresentation(nodeCells, suffix);
 			return;
 		}
-		const cells = this.getCurrentCells(nodeCells);
-		const cellToBreak = Array.from(cells.entries())
-			.sort(([a], [b]) => a - b)
-			.filter(([, nodes]) => nodes.length > 1)[0];
+		const cellToBreak = this.getCellToBreak(nodeCells);
+		for (const n of cellToBreak[1]) {
+			nodeCells[n] = cellToBreak[0] + 1;
+		}
 		for (const nodeId of cellToBreak[1]) {
 			// Check if subtree is pruned
 			if (prunedSubtrees.has(nodeId)) {
 				continue;
 			}
-			const newNodeCells = [...nodeCells];
-			cellToBreak[1].forEach((n) => {
-				if (n !== nodeId) {
-					newNodeCells[n] = cellToBreak[0] + 1;
-				}
-			});
-			const newSuffix = [...suffix, nodeId];
+			nodeCells[nodeId] = cellToBreak[0];
 			this.individualizeDFS(
-				newNodeCells,
-				newSuffix,
+				[...nodeCells],
+				[...suffix, nodeId],
 				prunedSubtrees,
 				handleRepresentation
 			);
+			nodeCells[nodeId] = cellToBreak[0] + 1;
 		}
 	}
 
@@ -210,53 +201,66 @@ export class GraphCanon {
 		while (!isEquitable) {
 			isEquitable = true;
 			// Build signature for each node
-			const signatures: [string, number][] = nodeCells.map((_, i) => {
+			const signatures: string[] = nodeCells.map((_, i) => {
 				const neighborCells = this.nodeNeighbors.get(i)!.map((n) => {
-					let cellInfo = nodeCells[n].toString();
 					if (this.hasEdgeLabels) {
-						cellInfo +=
-							';' +
-							this.graph.edgeLabels![i][n] +
-							';' +
-							this.graph.edgeLabels![n][i];
+						const edgeLabels = this.graph.edgeLabels!;
+						return `${nodeCells[n]};${edgeLabels[i][n]};${edgeLabels[n][i]}`;
 					}
-					return cellInfo;
+					return nodeCells[n].toString();
 				});
-				const signature = neighborCells.sort().join('|');
-				return [signature, i];
+				return neighborCells.sort().join('|');
 			});
 			// Group by current cell and signature
 			const partitionMap = new Map<number, Map<string, number[]>>();
-			for (const [signature, nodeIndex] of signatures) {
+			signatures.forEach((signature, nodeIndex) => {
 				const cell = nodeCells[nodeIndex];
-				if (!partitionMap.has(cell)) {
-					partitionMap.set(cell, new Map());
+				let cellMap = partitionMap.get(cell);
+				if (cellMap === undefined) {
+					cellMap = new Map();
+					partitionMap.set(cell, cellMap);
 				}
-				const cellMap = partitionMap.get(cell)!;
-				if (!cellMap.has(signature)) {
-					cellMap.set(signature, []);
+				let nodeIndices = cellMap.get(signature);
+				if (nodeIndices === undefined) {
+					nodeIndices = [];
+					cellMap.set(signature, nodeIndices);
 				}
-				cellMap.get(signature)!.push(nodeIndex);
-			}
+				nodeIndices.push(nodeIndex);
+			});
 			// Partition cells based on signature blocks
-			const cellIds = Array.from(partitionMap.keys()).sort();
-			for (const cellId of cellIds) {
-				const blocks = Array.from(partitionMap.get(cellId)!.entries());
+			for (let cellId = 1; cellId <= this.nodeCount; cellId++) {
+				const value = partitionMap.get(cellId);
+				if (value === undefined) {
+					continue;
+				}
+				const blocks = Array.from(value.entries());
 				if (blocks.length > 1) {
 					isEquitable = false;
 					// Sort block signatures descending
 					blocks.sort(([sigA], [sigB]) => sigB.localeCompare(sigA));
 					let newCellId = cellId;
-					blocks.forEach(([, nodes]) => {
+					for (const [_, nodes] of blocks) {
 						nodes.forEach((n) => (nodeCells[n] = newCellId));
 						newCellId += nodes.length;
-					});
+					}
 					break;
 				}
 			}
 		}
 	}
 
+	private getCellToBreak(nodeCells: number[]): [number, number[]] {
+		const cells: number[][] = Array.from({length: nodeCells.length}, () => []);
+		nodeCells.forEach((c, i) => cells[c - 1].push(i));
+		for (let i = 0; i < cells.length; i++) {
+			if (cells[i].length > 1) {
+				return [i + 1, cells[i]];
+			}
+		}
+		return [1, cells[0]];
+	}
+
+	/*
 	private getCurrentCells(nodeCells: number[]): Map<number, number[]> {
 		const cells = new Map<number, number[]>();
 		nodeCells.forEach((c, i) => {
@@ -268,8 +272,8 @@ export class GraphCanon {
 		});
 		return cells;
 	}
-
-	/*private getCellsString(nodeCells: number[]): string {
+	
+	private getCellsString(nodeCells: number[]): string {
 		const cells = this.getCurrentCells(nodeCells);
 		const cellIds = Array.from(cells.keys()).sort();
 		let text = '[';
