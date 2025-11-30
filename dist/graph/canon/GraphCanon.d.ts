@@ -13,10 +13,6 @@ export type NodePropertiesCanonKeyMapper = (graph: Graph, nodeIndex: number) => 
  *   New cell IDs of the split are assigned by descending key order.
  * - Target cell selection in the search tree is performed by selecting the leftmost (smallest) cell ID
  *   with at least two members.
- *
- * TODO:
- * - Automorphism detection
- * - Search tree pruning
  */
 export declare class GraphCanon {
     static readonly DefaultNodeKeySuffixGenerator: NodeKeySuffixGenerator;
