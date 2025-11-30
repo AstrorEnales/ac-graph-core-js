@@ -49,11 +49,13 @@ export class GraphCanon {
 	private readonly hasNodeLabels: boolean;
 	private readonly hasNodeProperties: boolean;
 	private readonly hasEdgeLabels: boolean;
+	private readonly isSymmetric: boolean;
 	private readonly graph: Graph;
 	private readonly nodeNeighbors = new Map<number, number[]>();
 	private readonly nodeKeys = new Map<number, string>();
 	private readonly nodePropertiesMapper: NodePropertiesMapper;
 	private readonly nodePropertiesCanonKeyMapper: NodePropertiesCanonKeyMapper;
+	private readonly graphStringBuilder: (graph: Graph) => string;
 
 	public constructor(
 		graph: Graph,
@@ -68,18 +70,24 @@ export class GraphCanon {
 		this.hasEdgeLabels = graph.edgeLabels !== undefined;
 		this.nodePropertiesMapper = nodePropertiesMapper;
 		this.nodePropertiesCanonKeyMapper = nodePropertiesCanonKeyMapper;
+		let isSymmetric = true;
 		for (let i = 0; i < this.nodeCount; i++) {
 			const neighbors = new Set<number>();
 			let inDegree = 0;
 			let outDegree = 0;
 			for (let j = 0; j < this.nodeCount; j++) {
-				if (graph.adjacencyMatrix[i][j] === 1) {
+				const isOut = graph.adjacencyMatrix[i][j];
+				const isIn = graph.adjacencyMatrix[j][i];
+				if (isOut === 1) {
 					outDegree++;
 					neighbors.add(j);
 				}
-				if (graph.adjacencyMatrix[j][i] === 1) {
+				if (isIn === 1) {
 					inDegree++;
 					neighbors.add(j);
+				}
+				if (isOut !== isIn) {
+					isSymmetric = false;
 				}
 			}
 			this.nodeNeighbors.set(i, [...neighbors]);
@@ -87,6 +95,9 @@ export class GraphCanon {
 				outDegree + '|' + inDegree + '|' + nodeKeySuffixGenerator(graph, i);
 			this.nodeKeys.set(i, nodeKey);
 		}
+		this.isSymmetric = isSymmetric;
+		// Finally build the curried graph key function
+		this.graphStringBuilder = this.buildGraphStringCurry();
 	}
 
 	public canonicalize(): [Graph, string, Mapping] {
@@ -260,33 +271,6 @@ export class GraphCanon {
 		return [1, cells[0]];
 	}
 
-	/*
-	private getCurrentCells(nodeCells: number[]): Map<number, number[]> {
-		const cells = new Map<number, number[]>();
-		nodeCells.forEach((c, i) => {
-			if (cells.has(c)) {
-				cells.get(c)!.push(i);
-			} else {
-				cells.set(c, [i]);
-			}
-		});
-		return cells;
-	}
-	
-	private getCellsString(nodeCells: number[]): string {
-		const cells = this.getCurrentCells(nodeCells);
-		const cellIds = Array.from(cells.keys()).sort();
-		let text = '[';
-		for (const cellId of cellIds) {
-			const nodeIds = Array.from(cells.get(cellId)!.values()).sort();
-			if (text.length > 1) {
-				text += '|';
-			}
-			text += nodeIds.join(' ');
-		}
-		return text + ']';
-	}*/
-
 	private buildRepresentationGraph(nodeCells: number[]): Graph {
 		const nodeMapping = nodeCells.map((c) => c - 1);
 		const graph: Graph = {
@@ -295,10 +279,21 @@ export class GraphCanon {
 				() => new Array(this.nodeCount)
 			),
 		};
-		for (let i = 0; i < this.nodeCount; i++) {
-			for (let j = 0; j < this.nodeCount; j++) {
-				graph.adjacencyMatrix[nodeMapping[i]][nodeMapping[j]] =
-					this.graph.adjacencyMatrix[i][j];
+		if (this.isSymmetric) {
+			for (let i = 0; i < this.nodeCount; i++) {
+				for (let j = i; j < this.nodeCount; j++) {
+					graph.adjacencyMatrix[nodeMapping[i]][nodeMapping[j]] =
+						this.graph.adjacencyMatrix[i][j];
+					graph.adjacencyMatrix[nodeMapping[j]][nodeMapping[i]] =
+						this.graph.adjacencyMatrix[i][j];
+				}
+			}
+		} else {
+			for (let i = 0; i < this.nodeCount; i++) {
+				for (let j = 0; j < this.nodeCount; j++) {
+					graph.adjacencyMatrix[nodeMapping[i]][nodeMapping[j]] =
+						this.graph.adjacencyMatrix[i][j];
+				}
 			}
 		}
 		if (this.hasNodeLabels) {
@@ -321,60 +316,88 @@ export class GraphCanon {
 				{length: this.nodeCount},
 				() => new Array(this.nodeCount)
 			);
-			for (let i = 0; i < this.nodeCount; i++) {
-				for (let j = 0; j < this.nodeCount; j++) {
-					graph.edgeLabels[nodeMapping[i]][nodeMapping[j]] =
-						this.graph.edgeLabels![i][j];
+			if (this.isSymmetric) {
+				for (let i = 0; i < this.nodeCount; i++) {
+					for (let j = i; j < this.nodeCount; j++) {
+						graph.edgeLabels[nodeMapping[i]][nodeMapping[j]] =
+							this.graph.edgeLabels![i][j];
+						graph.edgeLabels[nodeMapping[j]][nodeMapping[i]] =
+							this.graph.edgeLabels![i][j];
+					}
+				}
+			} else {
+				for (let i = 0; i < this.nodeCount; i++) {
+					for (let j = 0; j < this.nodeCount; j++) {
+						graph.edgeLabels[nodeMapping[i]][nodeMapping[j]] =
+							this.graph.edgeLabels![i][j];
+					}
 				}
 			}
 		}
 		return graph;
 	}
 
-	public buildGraphString(graph: Graph): string {
-		const edges: string[] = [];
-		for (let i = 0; i < this.nodeCount; i++) {
-			for (let j = 0; j < this.nodeCount; j++) {
-				if (graph.adjacencyMatrix[i][j] === 1) {
-					if (this.hasEdgeLabels) {
-						edges.push(i + '-' + graph.edgeLabels![i][j] + '-' + j);
-					} else {
-						edges.push(i + '-' + j);
+	private buildGraphStringCurry() {
+		const edgeCallback = this.hasEdgeLabels
+			? (graph: Graph, i: number, j: number) =>
+					`${i}-${graph.edgeLabels![i][j]}-${j}`
+			: (_: Graph, i: number, j: number) => `${i}-${j}`;
+		const nodePropertyCallback = this.hasNodeProperties
+			? (graph: Graph, i: number): string => {
+					const nodePropertyCanonKey = this.nodePropertiesCanonKeyMapper(
+						graph,
+						i
+					);
+					return nodePropertyCanonKey.length > 0
+						? `{${nodePropertyCanonKey}}`
+						: '';
+				}
+			: (_graph: Graph, _i: number): string => '';
+		const nodeCallback = this.hasNodeLabels
+			? (graph: Graph): string =>
+					';' +
+					graph
+						.labels!.map((l, i) => {
+							return l + nodePropertyCallback(graph, i);
+						})
+						.join('|')
+			: this.hasNodeProperties
+				? (graph: Graph): string =>
+						';' +
+						graph
+							.nodeProperties!.map((_, i) =>
+								this.nodePropertiesCanonKeyMapper(graph, i)
+							)
+							.join('|')
+				: (_: Graph): string => '';
+
+		if (this.isSymmetric) {
+			return (graph: Graph): string => {
+				const edges = [];
+				for (let i = 0; i < this.nodeCount; i++) {
+					for (let j = i; j < this.nodeCount; j++) {
+						if (graph.adjacencyMatrix[i][j] === 1) {
+							edges.push(edgeCallback(graph, i, j));
+						}
+					}
+				}
+				return edges.join('|') + nodeCallback(graph);
+			};
+		}
+		return (graph: Graph): string => {
+			const edges = [];
+			for (let i = 0; i < this.nodeCount; i++) {
+				for (let j = 0; j < this.nodeCount; j++) {
+					if (graph.adjacencyMatrix[i][j] === 1) {
+						edges.push(edgeCallback(graph, i, j));
 					}
 				}
 			}
-		}
-		let result = edges.join('|');
-		if (this.hasNodeLabels && this.hasNodeProperties) {
-			return (
-				edges.join('|') +
-				';' +
-				graph
-					.labels!.map((l, i) => {
-						const nodePropertyCanonKey = this.nodePropertiesCanonKeyMapper(
-							graph,
-							i
-						);
-						return (
-							l +
-							(nodePropertyCanonKey.length > 0
-								? '{' + nodePropertyCanonKey + '}'
-								: '')
-						);
-					})
-					.join('|')
-			);
-		} else if (this.hasNodeLabels) {
-			result += ';' + graph.labels!.join('|');
-		} else if (this.hasNodeProperties) {
-			result +=
-				';' +
-				graph
-					.nodeProperties!.map((_, i) =>
-						this.nodePropertiesCanonKeyMapper(graph, i)
-					)
-					.join('|');
-		}
-		return result;
+			return edges.join('|') + nodeCallback(graph);
+		};
+	}
+
+	public buildGraphString(graph: Graph): string {
+		return this.graphStringBuilder(graph);
 	}
 }
