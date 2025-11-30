@@ -25,10 +25,6 @@ export type NodePropertiesCanonKeyMapper = (
  *   New cell IDs of the split are assigned by descending key order.
  * - Target cell selection in the search tree is performed by selecting the leftmost (smallest) cell ID
  *   with at least two members.
- *
- * TODO:
- * - Automorphism detection
- * - Search tree pruning
  */
 export class GraphCanon {
 	public static readonly DefaultNodeKeySuffixGenerator: NodeKeySuffixGenerator =
@@ -103,20 +99,45 @@ export class GraphCanon {
 		let lexSmallestGraph: Graph | null = null;
 		let lexSmallestMapping: Mapping | null = null;
 		let lexSmallestGraphString: string | null = null;
-		this.individualizeDFS(nodeCells, [], (repNodeCells, _repSuffix) => {
-			// TODO: find automorphisms and prune search tree
-			const repGraph = this.buildRepresentationGraph(repNodeCells);
-			const repGraphString = this.buildGraphString(repGraph);
-			if (
-				lexSmallestGraphString === null ||
-				repGraphString.localeCompare(lexSmallestGraphString) < 0
-			) {
-				lexSmallestGraph = repGraph;
-				lexSmallestMapping = new Array(repNodeCells.length);
-				repNodeCells.forEach((cell, i) => (lexSmallestMapping![cell - 1] = i));
-				lexSmallestGraphString = repGraphString;
+
+		const automorphismGroups = Array.from(
+			{length: this.nodeCount},
+			(_) => new Set<number>()
+		);
+		const prunedSubtrees = new Set<number>();
+
+		this.individualizeDFS(
+			nodeCells,
+			[],
+			prunedSubtrees,
+			(repNodeCells, _repSuffix) => {
+				for (let i = 0; i < repNodeCells.length; i++) {
+					automorphismGroups[repNodeCells[i] - 1].add(i);
+				}
+				for (let i = 0; i < automorphismGroups.length; i++) {
+					// Update pruned subtrees
+					if (automorphismGroups[i].size > 1) {
+						const group = [...automorphismGroups[i]].sort();
+						for (let j = 1; j < group.length; j++) {
+							prunedSubtrees.add(group[j]);
+						}
+					}
+				}
+				const repGraph = this.buildRepresentationGraph(repNodeCells);
+				const repGraphString = this.buildGraphString(repGraph);
+				if (
+					lexSmallestGraphString === null ||
+					repGraphString.localeCompare(lexSmallestGraphString) < 0
+				) {
+					lexSmallestGraph = repGraph;
+					lexSmallestMapping = new Array(repNodeCells.length);
+					repNodeCells.forEach(
+						(cell, i) => (lexSmallestMapping![cell - 1] = i)
+					);
+					lexSmallestGraphString = repGraphString;
+				}
 			}
-		});
+		);
 		return [lexSmallestGraph!, lexSmallestGraphString!, lexSmallestMapping!];
 	}
 
@@ -147,6 +168,7 @@ export class GraphCanon {
 	private individualizeDFS(
 		nodeCells: number[],
 		suffix: number[],
+		prunedSubtrees: Set<number>,
 		handleRepresentation: (nodeCells: number[], suffix: number[]) => void
 	) {
 		if (this.isCanon(nodeCells)) {
@@ -163,15 +185,21 @@ export class GraphCanon {
 			.sort(([a], [b]) => a - b)
 			.filter(([, nodes]) => nodes.length > 1)[0];
 		for (const nodeId of cellToBreak[1]) {
+			// Check if subtree is pruned
+			if (prunedSubtrees.has(nodeId)) {
+				continue;
+			}
 			const newNodeCells = [...nodeCells];
 			cellToBreak[1].forEach((n) => {
 				if (n !== nodeId) {
 					newNodeCells[n] = cellToBreak[0] + 1;
 				}
 			});
+			const newSuffix = [...suffix, nodeId];
 			this.individualizeDFS(
 				newNodeCells,
-				[...suffix, nodeId],
+				newSuffix,
+				prunedSubtrees,
 				handleRepresentation
 			);
 		}
