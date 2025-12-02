@@ -19,3 +19,10 @@ export interface Graph {
      */
     edgeLabels?: string[][];
 }
+export type Automorphism = number[][];
+export declare class AutomorphismGroup {
+    readonly generators: Automorphism[];
+    constructor(generators: Automorphism[]);
+    orbits(): number[][];
+    toString(): string;
+}

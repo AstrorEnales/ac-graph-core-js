@@ -1,4 +1,4 @@
-import { Graph } from '..';
+import { AutomorphismGroup, Graph } from '..';
 import { Mapping } from '../matching';
 export type NodeKeySuffixGenerator = (graph: Graph, nodeIndex: number) => string;
 export type NodePropertiesMapper = (graph: Graph, nodeIndex: number, nodeMapping: number[]) => Map<string, any> | undefined;
@@ -22,20 +22,36 @@ export declare class GraphCanon {
     private readonly hasNodeLabels;
     private readonly hasNodeProperties;
     private readonly hasEdgeLabels;
+    private readonly isSymmetric;
     private readonly graph;
     private readonly nodeNeighbors;
     private readonly nodeKeys;
-    private readonly inDegrees;
-    private readonly outDegrees;
     private readonly nodePropertiesMapper;
     private readonly nodePropertiesCanonKeyMapper;
+    private readonly graphStringBuilder;
     constructor(graph: Graph, nodeKeySuffixGenerator?: NodeKeySuffixGenerator, nodePropertiesMapper?: NodePropertiesMapper, nodePropertiesCanonKeyMapper?: NodePropertiesCanonKeyMapper);
-    canonicalize(): [Graph, string, Mapping];
+    /**
+     * Canonicalize the graph
+     * @returns
+     * 1. canonical graph representation
+     * 2. graph key
+     * 3. node mapping from the original to the canonical graph
+     * 4. automorphisms
+     */
+    canonicalize(): [Graph, string, Mapping, AutomorphismGroup];
+    /**
+     * Calculates only the automorphisms of the graph.
+     *
+     * Note: if any of the graph, graph key, or node mapping are needed as well,
+     * use the canonicalize() function.
+     */
+    aut(): AutomorphismGroup;
     private partitionByPropertyKeys;
     private isCanon;
     private individualizeDFS;
     private individualizationRefinement;
-    private getCurrentCells;
+    private getCellToBreak;
     private buildRepresentationGraph;
+    private buildGraphStringCurry;
     buildGraphString(graph: Graph): string;
 }
