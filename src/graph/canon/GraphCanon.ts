@@ -171,7 +171,7 @@ export class GraphCanon {
 				if (automorphismGroups[i].size > 1) {
 					const group = [...automorphismGroups[i]].sort();
 					for (let j = 1; j < group.length; j++) {
-						prunedSubtrees.add(group[j]);
+						//prunedSubtrees.add(group[j]);
 					}
 				}
 			}
@@ -262,7 +262,7 @@ export class GraphCanon {
 				if (automorphismGroups[i].size > 1) {
 					const group = [...automorphismGroups[i]].sort();
 					for (let j = 1; j < group.length; j++) {
-						prunedSubtrees.add(group[j]);
+						//prunedSubtrees.add(group[j]);
 					}
 				}
 			}

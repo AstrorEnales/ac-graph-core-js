@@ -296,3 +296,70 @@ test('undirected labeled graph canon with index-dependant property', () => {
 		expect(permCanonGraphString).toBe(canonGraphString);
 	});
 });
+
+test('aut group orbits triangle', () => {
+	const graph: Graph = {
+		adjacencyMatrix: [
+			[0, 1, 1],
+			[1, 0, 1],
+			[1, 1, 0],
+		],
+	};
+	const autGroup = new GraphCanon(graph).aut();
+	expect(autGroup.orbits()).toStrictEqual([[0, 1, 2]]);
+});
+
+test('aut group orbits petersen graph', () => {
+	const graph: Graph = {
+		adjacencyMatrix: [
+			[0, 1, 0, 0, 1, 1, 0, 0, 0, 0],
+			[1, 0, 1, 0, 0, 0, 1, 0, 0, 0],
+			[0, 1, 0, 1, 0, 0, 0, 1, 0, 0],
+			[0, 0, 1, 0, 1, 0, 0, 0, 1, 0],
+			[1, 0, 0, 1, 0, 0, 0, 0, 0, 1],
+			[1, 0, 0, 0, 0, 0, 1, 0, 0, 1],
+			[0, 1, 0, 0, 0, 1, 0, 1, 0, 0],
+			[0, 0, 1, 0, 0, 0, 1, 0, 1, 0],
+			[0, 0, 0, 1, 0, 0, 0, 1, 0, 1],
+			[0, 0, 0, 0, 1, 1, 0, 0, 1, 0],
+		],
+	};
+	const autGroup = new GraphCanon(graph).aut();
+	expect(autGroup.orbits()).toStrictEqual([[0, 1, 2, 3, 4, 5, 6, 7, 8, 9]]);
+});
+
+test('aut group orbits laman graph 8', () => {
+	const graph: Graph = {
+		adjacencyMatrix: [
+			[0, 0, 1, 1, 1, 0, 0, 1],
+			[0, 0, 1, 1, 0, 0, 0, 1],
+			[1, 1, 0, 0, 1, 0, 0, 0],
+			[1, 1, 0, 0, 0, 1, 1, 0],
+			[1, 0, 1, 0, 0, 1, 0, 0],
+			[0, 0, 0, 1, 1, 0, 1, 0],
+			[0, 0, 0, 1, 0, 1, 0, 1],
+			[1, 1, 0, 0, 0, 0, 1, 0],
+		],
+	};
+	const autGroup = new GraphCanon(graph).aut();
+	expect(autGroup.orbits()).toStrictEqual([
+		[0, 3],
+		[1, 2, 4, 5, 6, 7],
+	]);
+});
+
+test('laman graph 8', {timeout: 10000}, () => {
+	const graph: Graph = {
+		adjacencyMatrix: [
+			[0, 0, 1, 1, 1, 0, 0, 1],
+			[0, 0, 1, 1, 0, 0, 0, 1],
+			[1, 1, 0, 0, 1, 0, 0, 0],
+			[1, 1, 0, 0, 0, 1, 1, 0],
+			[1, 0, 1, 0, 0, 1, 0, 0],
+			[0, 0, 0, 1, 1, 0, 1, 0],
+			[0, 0, 0, 1, 0, 1, 0, 1],
+			[1, 1, 0, 0, 0, 0, 1, 0],
+		],
+	};
+	testAllPermutations(graph);
+});
