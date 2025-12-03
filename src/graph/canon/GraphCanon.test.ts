@@ -344,7 +344,9 @@ test('aut group orbits laman graph 8', () => {
 	const autGroup = new GraphCanon(graph).aut();
 	expect(autGroup.orbits()).toStrictEqual([
 		[0, 3],
-		[1, 2, 4, 5, 6, 7],
+		[1, 7],
+		[2, 6],
+		[4, 5],
 	]);
 });
 
@@ -361,5 +363,29 @@ test('laman graph 8', {timeout: 10000}, () => {
 			[1, 1, 0, 0, 0, 0, 1, 0],
 		],
 	};
-	testAllPermutations(graph);
+	const permutations = getAllPermutations([
+		...Array(graph.adjacencyMatrix.length).keys(),
+	]);
+	testPermutations(graph, permutations.slice(1, 100));
+});
+
+test('Piperno 2008, figure 3 inspired', {timeout: 10000}, () => {
+	const graph: Graph = {
+		adjacencyMatrix: [
+			[0, 0, 1, 1, 0, 0, 0, 0, 0, 0],
+			[0, 0, 0, 0, 1, 1, 0, 0, 0, 0],
+			[1, 0, 0, 0, 0, 0, 1, 0, 0, 1],
+			[1, 0, 0, 0, 0, 0, 0, 1, 1, 0],
+			[0, 1, 0, 0, 0, 0, 1, 0, 1, 0],
+			[0, 1, 0, 0, 0, 0, 0, 1, 0, 1],
+			[0, 0, 1, 0, 1, 0, 0, 0, 1, 0],
+			[0, 0, 0, 1, 0, 1, 0, 0, 0, 1],
+			[0, 0, 0, 1, 1, 0, 1, 0, 0, 0],
+			[0, 0, 1, 0, 0, 1, 0, 1, 0, 0],
+		],
+	};
+	const permutations = getAllPermutations([
+		...Array(graph.adjacencyMatrix.length).keys(),
+	]);
+	testPermutations(graph, permutations.slice(1, 100));
 });

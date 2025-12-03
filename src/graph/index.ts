@@ -23,6 +23,10 @@ export interface Graph {
 
 export type Automorphism = number[][];
 
+export function automorphismToString(aut: Automorphism): string {
+	return aut.map((x) => '(' + x.join(' ') + ')').join('');
+}
+
 export class AutomorphismGroup {
 	public readonly generators: Automorphism[];
 
@@ -65,9 +69,7 @@ export class AutomorphismGroup {
 	public toString(): string {
 		return (
 			'gen[' +
-			this.generators
-				.map((g) => g.map((x) => '(' + x.join(' ') + ')').join(''))
-				.join(', ') +
+			this.generators.map(automorphismToString).join(', ') +
 			'], orb[' +
 			this.orbits()
 				.map((x) => '{' + x.join(' ') + '}')
@@ -75,4 +77,17 @@ export class AutomorphismGroup {
 			']'
 		);
 	}
+}
+
+export function symmetricGraphToDIMACS(graph: Graph): string {
+	const n = graph.adjacencyMatrix.length;
+	let edges: string[] = [];
+	for (let i = 0; i < n; i++) {
+		for (let j = i + 1; j < n; j++) {
+			if (graph.adjacencyMatrix[i][j] !== 0) {
+				edges.push(`e ${i + 1} ${j + 1}`);
+			}
+		}
+	}
+	return [`p edge ${n} ${edges.length}`, ...edges].join('\n');
 }

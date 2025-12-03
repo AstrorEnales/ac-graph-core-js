@@ -1,4 +1,4 @@
-import {Automorphism, AutomorphismGroup, Graph} from '..';
+import {Automorphism, AutomorphismGroup, automorphismToString, Graph} from '..';
 import {Mapping} from '../matching';
 
 export type NodeKeySuffixGenerator = (
@@ -111,20 +111,75 @@ export class GraphCanon {
 	public canonicalize(): [Graph, string, Mapping, AutomorphismGroup] {
 		const nodeCells = new Array(this.nodeCount).fill(1);
 		this.partitionByPropertyKeys(nodeCells);
-		let lexSmallestGraph: Graph | null = null;
-		let lexSmallestMapping: Mapping | null = null;
-		let lexSmallestGraphString: string | null = null;
-
-		const partitions: Map<number, number>[] = [];
-		const automorphisms = new Map<string, Automorphism>();
-		const automorphismGroups = Array.from(
-			{length: this.nodeCount},
-			(_) => new Set<number>()
+		const partitions: Map<
+			string,
+			{
+				partitions: Map<number, number>[];
+				automorphisms: Map<string, Automorphism>;
+			}
+		> = new Map();
+		const prunedSubtrees = new Set<string>();
+		this.individualizeDFS(
+			nodeCells,
+			[],
+			prunedSubtrees,
+			this.handleRepresentationCurry(partitions, prunedSubtrees)
 		);
-		const prunedSubtrees = new Set<number>();
+		const lexSmallestKey = [...partitions.keys()].sort((a, b) =>
+			a.localeCompare(b)
+		)[0];
+		const partition = partitions.get(lexSmallestKey)!;
+		const smallestRepresentation = new Array(this.nodeCount);
+		const lexSmallestMapping = new Array(smallestRepresentation.length);
+		[...partition.partitions[0].entries()].forEach(([c, i]) => {
+			smallestRepresentation[i] = c;
+			lexSmallestMapping[c - 1] = i;
+		});
+		const lexSmallestGraph = this.buildRepresentationGraph(
+			smallestRepresentation
+		);
+		return [
+			lexSmallestGraph,
+			this.buildGraphString(lexSmallestGraph),
+			lexSmallestMapping,
+			new AutomorphismGroup([...partition.automorphisms.values()]),
+		];
+	}
 
-		this.individualizeDFS(nodeCells, [], prunedSubtrees, (repNodeCells, _) => {
-			for (const partition of partitions) {
+	private handleRepresentationCurry(
+		partitions: Map<
+			string,
+			{
+				partitions: Map<number, number>[];
+				automorphisms: Map<string, Automorphism>;
+			}
+		>,
+		prunedSubtrees: Set<string>
+	): (nodeCells: number[], suffix: number[]) => void {
+		const cellIds = Array.from({length: this.nodeCount}, (_, i) => i + 1);
+		return (repNodeCells, suffix) => {
+			// Build the partition key for comparison with other partitions
+			const partition = new Map<number, number>();
+			repNodeCells.forEach((c, i) => partition.set(c, i));
+			const partitionKey = cellIds
+				.map((c) =>
+					this.nodeNeighbors
+						.get(partition.get(c)!)!
+						.map((n) => repNodeCells[n])
+						.sort()
+						.join(';')
+				)
+				.join('|');
+			let sameRepresentations = partitions.get(partitionKey);
+			if (sameRepresentations === undefined) {
+				sameRepresentations = {
+					partitions: [],
+					automorphisms: new Map(),
+				};
+				partitions.set(partitionKey, sameRepresentations);
+			}
+
+			for (const partition of sameRepresentations.partitions) {
 				const automorphismMap = new Map<string, number[]>();
 				for (let i = 0; i < repNodeCells.length; i++) {
 					const partitionIndex = partition.get(repNodeCells[i])!;
@@ -133,67 +188,27 @@ export class GraphCanon {
 							partitionIndex < i ? partitionIndex : i,
 							i < partitionIndex ? partitionIndex : i,
 						];
-						automorphismMap.set(match.join('|'), match);
+						automorphismMap.set(match[0] + '|' + match[1], match);
 					}
 				}
 				const automorphism = [...automorphismMap.values()];
-				let changed = true;
-				while (changed) {
-					changed = false;
-					for (let i = 0; i < automorphism.length; i++) {
-						for (let j = i + 1; j < automorphism.length; j++) {
-							if (automorphism[i].some((x) => automorphism[j].includes(x))) {
-								automorphism[i] = Array.from(
-									new Set([...automorphism[i], ...automorphism[j]])
-								).sort();
-								automorphism.splice(j, 1);
-								changed = true;
-								break;
-							}
+				sameRepresentations.automorphisms.set(
+					automorphismToString(automorphism),
+					automorphism
+				);
+				for (const x of automorphism) {
+					for (let i = 0; i < suffix.length; i++) {
+						if (x.includes(suffix[i])) {
+							x.filter((y) => y != suffix[i]).forEach((y) =>
+								prunedSubtrees.add([...suffix.slice(0, i), y].join('|'))
+							);
 						}
 					}
 				}
-				const automorphismKey = automorphism
-					.map((x) => '(' + x.join(' ') + ')')
-					.join('');
-				automorphisms.set(automorphismKey, automorphism);
 			}
-
-			const partition = new Map<number, number>();
-			repNodeCells.forEach((c, i) => partition.set(c, i));
-			partitions.push(partition);
-
-			for (let i = 0; i < repNodeCells.length; i++) {
-				automorphismGroups[repNodeCells[i] - 1].add(i);
-			}
-			for (let i = 0; i < automorphismGroups.length; i++) {
-				// Update pruned subtrees
-				if (automorphismGroups[i].size > 1) {
-					const group = [...automorphismGroups[i]].sort();
-					for (let j = 1; j < group.length; j++) {
-						//prunedSubtrees.add(group[j]);
-					}
-				}
-			}
-			const repGraph = this.buildRepresentationGraph(repNodeCells);
-			const repGraphString = this.buildGraphString(repGraph);
-			if (
-				lexSmallestGraphString === null ||
-				repGraphString.localeCompare(lexSmallestGraphString) < 0
-			) {
-				lexSmallestGraph = repGraph;
-				lexSmallestMapping = new Array(repNodeCells.length);
-				repNodeCells.forEach((cell, i) => (lexSmallestMapping![cell - 1] = i));
-				lexSmallestGraphString = repGraphString;
-			}
-		});
-
-		return [
-			lexSmallestGraph!,
-			lexSmallestGraphString!,
-			lexSmallestMapping!,
-			new AutomorphismGroup([...automorphisms.values()]),
-		];
+			// Save the representation
+			sameRepresentations.partitions.push(partition);
+		};
 	}
 
 	/**
@@ -205,69 +220,25 @@ export class GraphCanon {
 	public aut(): AutomorphismGroup {
 		const nodeCells = new Array(this.nodeCount).fill(1);
 		this.partitionByPropertyKeys(nodeCells);
-
-		const partitions: Map<number, number>[] = [];
-		const automorphisms = new Map<string, Automorphism>();
-		const automorphismGroups = Array.from(
-			{length: this.nodeCount},
-			(_) => new Set<number>()
+		const partitions: Map<
+			string,
+			{
+				partitions: Map<number, number>[];
+				automorphisms: Map<string, Automorphism>;
+			}
+		> = new Map();
+		const prunedSubtrees = new Set<string>();
+		this.individualizeDFS(
+			nodeCells,
+			[],
+			prunedSubtrees,
+			this.handleRepresentationCurry(partitions, prunedSubtrees)
 		);
-		const prunedSubtrees = new Set<number>();
-
-		this.individualizeDFS(nodeCells, [], prunedSubtrees, (repNodeCells, _) => {
-			for (const partition of partitions) {
-				const automorphismMap = new Map<string, number[]>();
-				for (let i = 0; i < repNodeCells.length; i++) {
-					const partitionIndex = partition.get(repNodeCells[i])!;
-					if (partitionIndex !== i) {
-						const match = [
-							partitionIndex < i ? partitionIndex : i,
-							i < partitionIndex ? partitionIndex : i,
-						];
-						automorphismMap.set(match.join('|'), match);
-					}
-				}
-				const automorphism = [...automorphismMap.values()];
-				let changed = true;
-				while (changed) {
-					changed = false;
-					for (let i = 0; i < automorphism.length; i++) {
-						for (let j = i + 1; j < automorphism.length; j++) {
-							if (automorphism[i].some((x) => automorphism[j].includes(x))) {
-								automorphism[i] = Array.from(
-									new Set([...automorphism[i], ...automorphism[j]])
-								).sort();
-								automorphism.splice(j, 1);
-								changed = true;
-								break;
-							}
-						}
-					}
-				}
-				const automorphismKey = automorphism
-					.map((x) => '(' + x.join(' ') + ')')
-					.join('');
-				automorphisms.set(automorphismKey, automorphism);
-			}
-
-			const partition = new Map<number, number>();
-			repNodeCells.forEach((c, i) => partition.set(c, i));
-			partitions.push(partition);
-
-			for (let i = 0; i < repNodeCells.length; i++) {
-				automorphismGroups[repNodeCells[i] - 1].add(i);
-			}
-			for (let i = 0; i < automorphismGroups.length; i++) {
-				// Update pruned subtrees
-				if (automorphismGroups[i].size > 1) {
-					const group = [...automorphismGroups[i]].sort();
-					for (let j = 1; j < group.length; j++) {
-						//prunedSubtrees.add(group[j]);
-					}
-				}
-			}
-		});
-		return new AutomorphismGroup([...automorphisms.values()]);
+		const lexSmallestKey = [...partitions.keys()].sort((a, b) =>
+			a.localeCompare(b)
+		)[0];
+		const partition = partitions.get(lexSmallestKey)!;
+		return new AutomorphismGroup([...partition.automorphisms.values()]);
 	}
 
 	private partitionByPropertyKeys(nodeCells: number[]) {
@@ -297,7 +268,7 @@ export class GraphCanon {
 	private individualizeDFS(
 		nodeCells: number[],
 		suffix: number[],
-		prunedSubtrees: Set<number>,
+		prunedSubtrees: Set<string>,
 		handleRepresentation: (nodeCells: number[], suffix: number[]) => void
 	) {
 		if (this.isCanon(nodeCells)) {
@@ -315,13 +286,14 @@ export class GraphCanon {
 		}
 		for (const nodeId of cellToBreak[1]) {
 			// Check if subtree is pruned
-			if (suffix.length === 0 && prunedSubtrees.has(nodeId)) {
+			const newSuffix = [...suffix, nodeId];
+			if (prunedSubtrees.has(newSuffix.join('|'))) {
 				continue;
 			}
 			nodeCells[nodeId] = cellToBreak[0];
 			this.individualizeDFS(
 				[...nodeCells],
-				[...suffix, nodeId],
+				newSuffix,
 				prunedSubtrees,
 				handleRepresentation
 			);
