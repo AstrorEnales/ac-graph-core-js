@@ -1,4 +1,4 @@
-import {Automorphism, AutomorphismGroup, automorphismToString, Graph} from '..';
+import {Automorphism, AutomorphismGroup, Graph} from '..';
 import {Mapping} from '../matching';
 
 export type NodeKeySuffixGenerator = (
@@ -138,11 +138,17 @@ export class GraphCanon {
 		const lexSmallestGraph = this.buildRepresentationGraph(
 			smallestRepresentation
 		);
+		const allAutomorphisms = new Map<string, Automorphism>();
+		[...partitions.values()].forEach((p) =>
+			[...p.automorphisms.entries()].forEach(([key, aut]) =>
+				allAutomorphisms.set(key, aut)
+			)
+		);
 		return [
 			lexSmallestGraph,
 			this.buildGraphString(lexSmallestGraph),
 			lexSmallestMapping,
-			new AutomorphismGroup([...partition.automorphisms.values()]),
+			new AutomorphismGroup([...allAutomorphisms.values()]),
 		];
 	}
 
@@ -180,23 +186,23 @@ export class GraphCanon {
 			}
 
 			for (const partition of sameRepresentations.partitions) {
-				const automorphismMap = new Map<string, number[]>();
+				const automorphismMap = new Map<string, [number, number]>();
 				for (let i = 0; i < repNodeCells.length; i++) {
 					const partitionIndex = partition.get(repNodeCells[i])!;
 					if (partitionIndex !== i) {
-						const match = [
+						const match: [number, number] = [
 							partitionIndex < i ? partitionIndex : i,
 							i < partitionIndex ? partitionIndex : i,
 						];
 						automorphismMap.set(match[0] + '|' + match[1], match);
 					}
 				}
-				const automorphism = [...automorphismMap.values()];
+				const automorphism = new Automorphism([...automorphismMap.values()]);
 				sameRepresentations.automorphisms.set(
-					automorphismToString(automorphism),
+					automorphism.toString(),
 					automorphism
 				);
-				for (const x of automorphism) {
+				for (const x of automorphism.mappings) {
 					for (let i = 0; i < suffix.length; i++) {
 						if (x.includes(suffix[i])) {
 							x.filter((y) => y != suffix[i]).forEach((y) =>
@@ -234,11 +240,13 @@ export class GraphCanon {
 			prunedSubtrees,
 			this.handleRepresentationCurry(partitions, prunedSubtrees)
 		);
-		const lexSmallestKey = [...partitions.keys()].sort((a, b) =>
-			a.localeCompare(b)
-		)[0];
-		const partition = partitions.get(lexSmallestKey)!;
-		return new AutomorphismGroup([...partition.automorphisms.values()]);
+		const allAutomorphisms = new Map<string, Automorphism>();
+		[...partitions.values()].forEach((p) =>
+			[...p.automorphisms.entries()].forEach(([key, aut]) =>
+				allAutomorphisms.set(key, aut)
+			)
+		);
+		return new AutomorphismGroup([...allAutomorphisms.values()]);
 	}
 
 	private partitionByPropertyKeys(nodeCells: number[]) {
@@ -343,9 +351,7 @@ export class GraphCanon {
 				}
 				isEquitable = false;
 				// Sort block signatures descending
-				const blockKeys = Array.from(value.keys()).sort((sigA, sigB) =>
-					sigB.localeCompare(sigA)
-				);
+				const blockKeys = [...value.keys()].sort((a, b) => b.localeCompare(a));
 				let newCellId = cellId;
 				for (const key of blockKeys) {
 					const nodes = value.get(key)!;
