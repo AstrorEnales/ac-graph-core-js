@@ -39,6 +39,7 @@ export declare class GraphCanon {
      * 4. automorphisms
      */
     canonicalize(): [Graph, string, Mapping, AutomorphismGroup];
+    private handleRepresentationCurry;
     /**
      * Calculates only the automorphisms of the graph.
      *
