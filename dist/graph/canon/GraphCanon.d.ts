@@ -1,4 +1,5 @@
-import { AutomorphismGroup, Graph } from '..';
+import { Graph } from '..';
+import { AutomorphismGroup } from '../Automorphism';
 import { Mapping } from '../matching';
 export type NodeKeySuffixGenerator = (graph: Graph, nodeIndex: number) => string;
 export type NodePropertiesMapper = (graph: Graph, nodeIndex: number, nodeMapping: number[]) => Map<string, any> | undefined;
@@ -15,6 +16,7 @@ export type NodePropertiesCanonKeyMapper = (graph: Graph, nodeIndex: number) => 
  *   with at least two members.
  */
 export declare class GraphCanon {
+    static readonly KEY_VERSION = "v2";
     static readonly DefaultNodeKeySuffixGenerator: NodeKeySuffixGenerator;
     static readonly DefaultNodePropertiesMapper: NodePropertiesMapper;
     static readonly DefaultNodePropertiesCanonKeyMapper: NodePropertiesCanonKeyMapper;

@@ -279,7 +279,7 @@ test('undirected labeled graph canon with index-dependant property', () => {
 	);
 	const [, canonGraphString] = canon.canonicalize();
 	expect(canonGraphString).toBe(
-		'0---4|1---4|2---4|3---4;B|C|D|E|A{stereo:tetrahedral[0, 1, 2, 3]!}'
+		'v2;5;sym;0---4|1---4|2---4|3---4;B|C|D|E|A{stereo:tetrahedral[0, 1, 2, 3]!}'
 	);
 	permutations.forEach((perm) => {
 		const permGraph = applyPermutationToGraph(graph, perm);
@@ -306,7 +306,7 @@ test('aut group orbits triangle', () => {
 		],
 	};
 	const autGroup = new GraphCanon(graph).aut();
-	expect(autGroup.orbits([0, 1, 2])).toStrictEqual([[0, 1, 2]]);
+	expect(autGroup.orbits()).toStrictEqual([[0, 1, 2]]);
 });
 
 test('aut group orbits petersen graph', () => {
@@ -325,9 +325,7 @@ test('aut group orbits petersen graph', () => {
 		],
 	};
 	const autGroup = new GraphCanon(graph).aut();
-	expect(autGroup.orbits([0, 1, 2, 3, 4, 5, 6, 7, 8, 9])).toStrictEqual([
-		[0, 1, 2, 3, 4, 5, 6, 7, 8, 9],
-	]);
+	expect(autGroup.orbits()).toStrictEqual([[0, 1, 2, 3, 4, 5, 6, 7, 8, 9]]);
 });
 
 test('aut group orbits laman graph 8', () => {
@@ -344,7 +342,7 @@ test('aut group orbits laman graph 8', () => {
 		],
 	};
 	const autGroup = new GraphCanon(graph).aut();
-	expect(autGroup.orbits([0, 1, 2, 3, 4, 5, 6, 7])).toStrictEqual([
+	expect(autGroup.orbits()).toStrictEqual([
 		[0, 3],
 		[1, 7],
 		[2, 6],

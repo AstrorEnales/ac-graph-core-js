@@ -1,4 +1,5 @@
-import {Automorphism, AutomorphismGroup, Graph} from '..';
+import {Graph} from '..';
+import {Automorphism, AutomorphismGroup} from '../Automorphism';
 import {Mapping} from '../matching';
 
 export type NodeKeySuffixGenerator = (
@@ -27,6 +28,7 @@ export type NodePropertiesCanonKeyMapper = (
  *   with at least two members.
  */
 export class GraphCanon {
+	public static readonly KEY_VERSION = 'v2';
 	public static readonly DefaultNodeKeySuffixGenerator: NodeKeySuffixGenerator =
 		(graph: Graph, nodeIndex: number) => {
 			return graph.labels ? graph.labels[nodeIndex] : '';
@@ -148,7 +150,7 @@ export class GraphCanon {
 			lexSmallestGraph,
 			this.buildGraphString(lexSmallestGraph),
 			lexSmallestMapping,
-			new AutomorphismGroup([...allAutomorphisms.values()]),
+			new AutomorphismGroup([...allAutomorphisms.values()], this.nodeCount),
 		];
 	}
 
@@ -186,28 +188,25 @@ export class GraphCanon {
 			}
 
 			for (const partition of sameRepresentations.partitions) {
-				const automorphismMap = new Map<string, [number, number]>();
+				const automorphismMap = new Map<number, number>();
 				for (let i = 0; i < repNodeCells.length; i++) {
 					const partitionIndex = partition.get(repNodeCells[i])!;
-					if (partitionIndex !== i) {
-						const match: [number, number] = [
-							partitionIndex < i ? partitionIndex : i,
-							i < partitionIndex ? partitionIndex : i,
-						];
-						automorphismMap.set(match[0] + '|' + match[1], match);
-					}
+					automorphismMap.set(i, partitionIndex);
 				}
-				const automorphism = new Automorphism([...automorphismMap.values()]);
-				sameRepresentations.automorphisms.set(
-					automorphism.toString(),
-					automorphism
-				);
-				for (const x of automorphism.mappings) {
-					for (let i = 0; i < suffix.length; i++) {
-						if (x.includes(suffix[i])) {
-							x.filter((y) => y != suffix[i]).forEach((y) =>
-								prunedSubtrees.add([...suffix.slice(0, i), y].join('|'))
-							);
+				const automorphism = new Automorphism(automorphismMap);
+				const key = automorphism.toString();
+				if (!sameRepresentations.automorphisms.has(key)) {
+					sameRepresentations.automorphisms.set(key, automorphism);
+					for (const x of automorphism.mappings) {
+						if (x[0] === x[1]) {
+							continue;
+						}
+						for (let i = 0; i < suffix.length; i++) {
+							if (suffix[i] === x[0]) {
+								prunedSubtrees.add([...suffix.slice(0, i), x[1]].join('|'));
+							} else if (suffix[i] === x[1]) {
+								prunedSubtrees.add([...suffix.slice(0, i), x[0]].join('|'));
+							}
 						}
 					}
 				}
@@ -246,7 +245,10 @@ export class GraphCanon {
 				allAutomorphisms.set(key, aut)
 			)
 		);
-		return new AutomorphismGroup([...allAutomorphisms.values()]);
+		return new AutomorphismGroup(
+			[...allAutomorphisms.values()],
+			this.nodeCount
+		);
 	}
 
 	private partitionByPropertyKeys(nodeCells: number[]) {
@@ -485,7 +487,14 @@ export class GraphCanon {
 						}
 					}
 				}
-				return edges.join('|') + nodeCallback(graph);
+				return (
+					GraphCanon.KEY_VERSION +
+					';' +
+					graph.adjacencyMatrix.length +
+					';sym;' +
+					edges.join('|') +
+					nodeCallback(graph)
+				);
 			};
 		}
 		return (graph: Graph): string => {
@@ -498,7 +507,14 @@ export class GraphCanon {
 					}
 				}
 			}
-			return edges.join('|') + nodeCallback(graph);
+			return (
+				GraphCanon.KEY_VERSION +
+				';' +
+				graph.adjacencyMatrix.length +
+				';' +
+				edges.join('|') +
+				nodeCallback(graph)
+			);
 		};
 	}
 
