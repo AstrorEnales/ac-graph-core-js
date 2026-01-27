@@ -11,6 +11,10 @@ export type NodePropertiesMapper = (
 	nodeIndex: number,
 	nodeMapping: number[]
 ) => Map<string, any> | undefined;
+export type NodeLabelCanonKeyMapper = (
+	graph: Graph,
+	nodeIndex: number
+) => string;
 export type NodePropertiesCanonKeyMapper = (
 	graph: Graph,
 	nodeIndex: number
@@ -42,6 +46,10 @@ export class GraphCanon {
 			? new Map(graph.nodeProperties[nodeIndex])
 			: undefined;
 	};
+	public static readonly DefaultNodeLabelCanonKeyMapper: NodeLabelCanonKeyMapper =
+		(graph: Graph, nodeIndex: number) => {
+			return graph.labels ? graph.labels[nodeIndex] : '';
+		};
 	public static readonly DefaultNodePropertiesCanonKeyMapper: NodePropertiesCanonKeyMapper =
 		(_graph: Graph, _nodeIndex: number) => {
 			return '';
@@ -56,6 +64,7 @@ export class GraphCanon {
 	private readonly nodeNeighbors = new Map<number, number[]>();
 	private readonly nodeKeys = new Map<number, string>();
 	private readonly nodePropertiesMapper: NodePropertiesMapper;
+	private readonly nodeLabelCanonKeyMapper: NodeLabelCanonKeyMapper;
 	private readonly nodePropertiesCanonKeyMapper: NodePropertiesCanonKeyMapper;
 	private readonly graphStringBuilder: (graph: Graph) => string;
 
@@ -63,6 +72,7 @@ export class GraphCanon {
 		graph: Graph,
 		nodeKeySuffixGenerator: NodeKeySuffixGenerator = GraphCanon.DefaultNodeKeySuffixGenerator,
 		nodePropertiesMapper: NodePropertiesMapper = GraphCanon.DefaultNodePropertiesMapper,
+		nodeLabelCanonKeyMapper: NodeLabelCanonKeyMapper = GraphCanon.DefaultNodeLabelCanonKeyMapper,
 		nodePropertiesCanonKeyMapper: NodePropertiesCanonKeyMapper = GraphCanon.DefaultNodePropertiesCanonKeyMapper
 	) {
 		this.graph = graph;
@@ -71,6 +81,7 @@ export class GraphCanon {
 		this.hasNodeProperties = graph.nodeProperties !== undefined;
 		this.hasEdgeLabels = graph.edgeLabels !== undefined;
 		this.nodePropertiesMapper = nodePropertiesMapper;
+		this.nodeLabelCanonKeyMapper = nodeLabelCanonKeyMapper;
 		this.nodePropertiesCanonKeyMapper = nodePropertiesCanonKeyMapper;
 		let isSymmetric = true;
 		for (let i = 0; i < this.nodeCount; i++) {
@@ -464,7 +475,11 @@ export class GraphCanon {
 			? (graph: Graph): string =>
 					';' +
 					graph
-						.labels!.map((l, i) => l + nodePropertyCallback(graph, i))
+						.labels!.map(
+							(_, i) =>
+								this.nodeLabelCanonKeyMapper(graph, i) +
+								nodePropertyCallback(graph, i)
+						)
 						.join('|')
 			: this.hasNodeProperties
 				? (graph: Graph): string =>
