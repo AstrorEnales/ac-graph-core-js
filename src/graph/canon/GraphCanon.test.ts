@@ -241,6 +241,37 @@ test('node label canon key mapper', () => {
 	);
 });
 
+test('edge label canon key mapper', () => {
+	const graph: Graph = {
+		adjacencyMatrix: [
+			[0, 1, 1, 1, 1],
+			[1, 0, 0, 0, 0],
+			[1, 0, 0, 0, 0],
+			[1, 0, 0, 0, 0],
+			[1, 0, 0, 0, 0],
+		],
+		labels: ['A', 'B', 'C', 'D', 'E'],
+		edgeLabels: [
+			['', '-', '-', '-', '-'],
+			['-', '', '', '', ''],
+			['-', '', '', '', ''],
+			['-', '', '', '', ''],
+			['-', '', '', '', ''],
+		],
+	};
+	const canon = new GraphCanon(
+		graph,
+		GraphCanon.DefaultNodeKeySuffixGenerator,
+		GraphCanon.DefaultNodePropertiesMapper,
+		GraphCanon.DefaultNodeLabelCanonKeyMapper,
+		(g, i, j) => g.edgeLabels![i][j] + i + ',' + j
+	);
+	const [, canonGraphString] = canon.canonicalize();
+	expect(canonGraphString).toBe(
+		'v2;5;sym;0--0,4-4|1--1,4-4|2--2,4-4|3--3,4-4;B|C|D|E|A'
+	);
+});
+
 test('undirected labeled graph canon with index-dependant property', () => {
 	const graph: Graph = {
 		adjacencyMatrix: [
@@ -306,6 +337,7 @@ test('undirected labeled graph canon with index-dependant property', () => {
 		nodeKeySuffixGenerator,
 		nodePropertiesMapper,
 		GraphCanon.DefaultNodeLabelCanonKeyMapper,
+		GraphCanon.DefaultEdgeLabelCanonKeyMapper,
 		nodePropertiesCanonKeyMapper
 	);
 	const [, canonGraphString] = canon.canonicalize();
@@ -322,6 +354,7 @@ test('undirected labeled graph canon with index-dependant property', () => {
 			nodeKeySuffixGenerator,
 			nodePropertiesMapper,
 			GraphCanon.DefaultNodeLabelCanonKeyMapper,
+			GraphCanon.DefaultEdgeLabelCanonKeyMapper,
 			nodePropertiesCanonKeyMapper
 		);
 		const [, permCanonGraphString] = permCanon.canonicalize();

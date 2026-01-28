@@ -15,6 +15,11 @@ export type NodeLabelCanonKeyMapper = (
 	graph: Graph,
 	nodeIndex: number
 ) => string;
+export type EdgeLabelCanonKeyMapper = (
+	graph: Graph,
+	sourceNodeIndex: number,
+	targetNodeIndex: number
+) => string;
 export type NodePropertiesCanonKeyMapper = (
 	graph: Graph,
 	nodeIndex: number
@@ -50,6 +55,12 @@ export class GraphCanon {
 		(graph: Graph, nodeIndex: number) => {
 			return graph.labels ? graph.labels[nodeIndex] : '';
 		};
+	public static readonly DefaultEdgeLabelCanonKeyMapper: EdgeLabelCanonKeyMapper =
+		(graph: Graph, sourceNodeIndex: number, targetNodeIndex: number) => {
+			return graph.edgeLabels
+				? graph.edgeLabels[sourceNodeIndex][targetNodeIndex]
+				: '';
+		};
 	public static readonly DefaultNodePropertiesCanonKeyMapper: NodePropertiesCanonKeyMapper =
 		(_graph: Graph, _nodeIndex: number) => {
 			return '';
@@ -65,6 +76,7 @@ export class GraphCanon {
 	private readonly nodeKeys = new Map<number, string>();
 	private readonly nodePropertiesMapper: NodePropertiesMapper;
 	private readonly nodeLabelCanonKeyMapper: NodeLabelCanonKeyMapper;
+	private readonly edgeLabelCanonKeyMapper: EdgeLabelCanonKeyMapper;
 	private readonly nodePropertiesCanonKeyMapper: NodePropertiesCanonKeyMapper;
 	private readonly graphStringBuilder: (graph: Graph) => string;
 
@@ -73,6 +85,7 @@ export class GraphCanon {
 		nodeKeySuffixGenerator: NodeKeySuffixGenerator = GraphCanon.DefaultNodeKeySuffixGenerator,
 		nodePropertiesMapper: NodePropertiesMapper = GraphCanon.DefaultNodePropertiesMapper,
 		nodeLabelCanonKeyMapper: NodeLabelCanonKeyMapper = GraphCanon.DefaultNodeLabelCanonKeyMapper,
+		edgeLabelCanonKeyMapper: EdgeLabelCanonKeyMapper = GraphCanon.DefaultEdgeLabelCanonKeyMapper,
 		nodePropertiesCanonKeyMapper: NodePropertiesCanonKeyMapper = GraphCanon.DefaultNodePropertiesCanonKeyMapper
 	) {
 		this.graph = graph;
@@ -82,6 +95,7 @@ export class GraphCanon {
 		this.hasEdgeLabels = graph.edgeLabels !== undefined;
 		this.nodePropertiesMapper = nodePropertiesMapper;
 		this.nodeLabelCanonKeyMapper = nodeLabelCanonKeyMapper;
+		this.edgeLabelCanonKeyMapper = edgeLabelCanonKeyMapper;
 		this.nodePropertiesCanonKeyMapper = nodePropertiesCanonKeyMapper;
 		let isSymmetric = true;
 		for (let i = 0; i < this.nodeCount; i++) {
@@ -458,7 +472,7 @@ export class GraphCanon {
 	private buildGraphStringCurry() {
 		const edgeCallback = this.hasEdgeLabels
 			? (graph: Graph, i: number, j: number) =>
-					`${i}-${graph.edgeLabels![i][j]}-${j}`
+					`${i}-${this.edgeLabelCanonKeyMapper(graph, i, j)}-${j}`
 			: (_: Graph, i: number, j: number) => `${i}-${j}`;
 		const nodePropertyCallback = this.hasNodeProperties
 			? (graph: Graph, i: number): string => {

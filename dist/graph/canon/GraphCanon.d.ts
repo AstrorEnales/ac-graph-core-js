@@ -4,6 +4,7 @@ import { Mapping } from '../matching';
 export type NodeKeySuffixGenerator = (graph: Graph, nodeIndex: number) => string;
 export type NodePropertiesMapper = (graph: Graph, nodeIndex: number, nodeMapping: number[]) => Map<string, any> | undefined;
 export type NodeLabelCanonKeyMapper = (graph: Graph, nodeIndex: number) => string;
+export type EdgeLabelCanonKeyMapper = (graph: Graph, sourceNodeIndex: number, targetNodeIndex: number) => string;
 export type NodePropertiesCanonKeyMapper = (graph: Graph, nodeIndex: number) => string;
 /**
  * Nauty graph canonicalization using the following graph properties
@@ -21,6 +22,7 @@ export declare class GraphCanon {
     static readonly DefaultNodeKeySuffixGenerator: NodeKeySuffixGenerator;
     static readonly DefaultNodePropertiesMapper: NodePropertiesMapper;
     static readonly DefaultNodeLabelCanonKeyMapper: NodeLabelCanonKeyMapper;
+    static readonly DefaultEdgeLabelCanonKeyMapper: EdgeLabelCanonKeyMapper;
     static readonly DefaultNodePropertiesCanonKeyMapper: NodePropertiesCanonKeyMapper;
     private readonly nodeCount;
     private readonly hasNodeLabels;
@@ -32,9 +34,10 @@ export declare class GraphCanon {
     private readonly nodeKeys;
     private readonly nodePropertiesMapper;
     private readonly nodeLabelCanonKeyMapper;
+    private readonly edgeLabelCanonKeyMapper;
     private readonly nodePropertiesCanonKeyMapper;
     private readonly graphStringBuilder;
-    constructor(graph: Graph, nodeKeySuffixGenerator?: NodeKeySuffixGenerator, nodePropertiesMapper?: NodePropertiesMapper, nodeLabelCanonKeyMapper?: NodeLabelCanonKeyMapper, nodePropertiesCanonKeyMapper?: NodePropertiesCanonKeyMapper);
+    constructor(graph: Graph, nodeKeySuffixGenerator?: NodeKeySuffixGenerator, nodePropertiesMapper?: NodePropertiesMapper, nodeLabelCanonKeyMapper?: NodeLabelCanonKeyMapper, edgeLabelCanonKeyMapper?: EdgeLabelCanonKeyMapper, nodePropertiesCanonKeyMapper?: NodePropertiesCanonKeyMapper);
     /**
      * Canonicalize the graph
      * @returns
