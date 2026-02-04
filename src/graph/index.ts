@@ -1,6 +1,7 @@
 export * as matching from './matching';
 export * as canon from './canon';
 export * from './ConnectedComponents';
+export * from './Automorphism';
 
 export interface Graph {
 	/**

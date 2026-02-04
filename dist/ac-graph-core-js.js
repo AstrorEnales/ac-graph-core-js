@@ -207,7 +207,7 @@ class w {
     return this.cycles.length === 0 ? "()" : this.cycles.map((e) => `(${e.join(" ")})`).sort().join("");
   }
 }
-class v {
+class K {
   constructor(e, s) {
     h(this, "generators");
     if (e.some((r) => r.isIdentity()))
@@ -334,7 +334,7 @@ const p = class p {
       a,
       this.buildGraphString(a),
       i,
-      new v([...l.values()], this.nodeCount)
+      new K([...l.values()], this.nodeCount)
     ];
   }
   handleRepresentationCurry(e, s) {
@@ -389,7 +389,7 @@ const p = class p {
       (n) => [...n.automorphisms.entries()].forEach(
         ([o, i]) => t.set(o, i)
       )
-    ), new v(
+    ), new K(
       [...t.values()],
       this.nodeCount
     );
@@ -550,10 +550,10 @@ const p = class p {
   }
 };
 h(p, "KEY_VERSION", "v2"), h(p, "DefaultNodeKeySuffixGenerator", (e, s) => e.labels ? e.labels[s] : ""), h(p, "DefaultNodePropertiesMapper", (e, s, r) => e.nodeProperties && e.nodeProperties[s] ? new Map(e.nodeProperties[s]) : void 0), h(p, "DefaultNodeLabelCanonKeyMapper", (e, s) => e.labels ? e.labels[s] : ""), h(p, "DefaultEdgeLabelCanonKeyMapper", (e, s, r) => e.edgeLabels ? e.edgeLabels[s][r] : ""), h(p, "DefaultNodePropertiesCanonKeyMapper", (e, s) => "");
-let K = p;
+let v = p;
 const O = /* @__PURE__ */ Object.freeze(/* @__PURE__ */ Object.defineProperty({
   __proto__: null,
-  GraphCanon: K
+  GraphCanon: v
 }, Symbol.toStringTag, { value: "Module" }));
 class N {
   static find(e) {
@@ -581,6 +581,8 @@ function z(m) {
 }
 const _ = /* @__PURE__ */ Object.freeze(/* @__PURE__ */ Object.defineProperty({
   __proto__: null,
+  Automorphism: w,
+  AutomorphismGroup: K,
   ConnectedComponents: N,
   canon: O,
   matching: I,
