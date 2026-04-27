@@ -72,7 +72,7 @@ export class GraphCanon {
 	private readonly hasEdgeLabels: boolean;
 	private readonly isSymmetric: boolean;
 	private readonly graph: Graph;
-	private readonly nodeNeighbors = new Map<number, number[]>();
+	private readonly nodeNeighbors: number[][];
 	private readonly nodeKeys = new Map<number, string>();
 	private readonly nodePropertiesMapper: NodePropertiesMapper;
 	private readonly nodeLabelCanonKeyMapper: NodeLabelCanonKeyMapper;
@@ -90,6 +90,7 @@ export class GraphCanon {
 	) {
 		this.graph = graph;
 		this.nodeCount = graph.adjacencyMatrix.length;
+		this.nodeNeighbors = Array.from({length: this.nodeCount}, () => []);
 		this.hasNodeLabels = graph.labels !== undefined;
 		this.hasNodeProperties = graph.nodeProperties !== undefined;
 		this.hasEdgeLabels = graph.edgeLabels !== undefined;
@@ -99,7 +100,7 @@ export class GraphCanon {
 		this.nodePropertiesCanonKeyMapper = nodePropertiesCanonKeyMapper;
 		let isSymmetric = true;
 		for (let i = 0; i < this.nodeCount; i++) {
-			const neighbors = new Set<number>();
+			const neighbors = this.nodeNeighbors[i];
 			let inDegree = 0;
 			let outDegree = 0;
 			for (let j = 0; j < this.nodeCount; j++) {
@@ -107,17 +108,17 @@ export class GraphCanon {
 				const isIn = graph.adjacencyMatrix[j][i];
 				if (isOut === 1) {
 					outDegree++;
-					neighbors.add(j);
 				}
 				if (isIn === 1) {
 					inDegree++;
-					neighbors.add(j);
 				}
 				if (isOut !== isIn) {
 					isSymmetric = false;
 				}
+				if (isOut === 1 || isIn === 1) {
+					neighbors.push(j);
+				}
 			}
-			this.nodeNeighbors.set(i, [...neighbors]);
 			const nodeKey =
 				outDegree + '|' + inDegree + '|' + nodeKeySuffixGenerator(graph, i);
 			this.nodeKeys.set(i, nodeKey);
@@ -196,8 +197,7 @@ export class GraphCanon {
 			repNodeCells.forEach((c, i) => partition.set(c, i));
 			const partitionKey = cellIds
 				.map((c) =>
-					this.nodeNeighbors
-						.get(partition.get(c)!)!
+					this.nodeNeighbors[partition.get(c)!]
 						.map((n) => repNodeCells[n])
 						.sort()
 						.join(';')
@@ -342,7 +342,7 @@ export class GraphCanon {
 			isEquitable = true;
 			// Build signature for each node
 			const signatures: string[] = nodeCells.map((_, i) => {
-				const neighborCells = this.nodeNeighbors.get(i)!.map((n) => {
+				const neighborCells = this.nodeNeighbors[i].map((n) => {
 					if (this.hasEdgeLabels) {
 						const edgeLabels = this.graph.edgeLabels!;
 						if (this.isSymmetric) {
