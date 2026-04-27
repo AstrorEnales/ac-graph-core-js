@@ -142,14 +142,17 @@ export class GraphCanon {
 		const partitions: Map<
 			string,
 			{
-				partitions: Map<number, number>[];
+				partitions: number[][];
 				automorphisms: Map<string, Automorphism>;
 			}
 		> = new Map();
 		const prunedSubtrees = new Set<string>();
+		const suffix = new Array(this.nodeCount).fill(-1);
 		this.individualizeDFS(
 			nodeCells,
-			[],
+			suffix,
+			0,
+			'',
 			prunedSubtrees,
 			this.handleRepresentationCurry(partitions, prunedSubtrees)
 		);
@@ -160,8 +163,8 @@ export class GraphCanon {
 		const smallestRepresentation = new Array(this.nodeCount);
 		const lexSmallestMapping = new Array(smallestRepresentation.length);
 		[...partition.partitions[0].entries()].forEach(([c, i]) => {
-			smallestRepresentation[i] = c;
-			lexSmallestMapping[c - 1] = i;
+			smallestRepresentation[i] = c + 1;
+			lexSmallestMapping[c] = i;
 		});
 		const lexSmallestGraph = this.buildRepresentationGraph(
 			smallestRepresentation
@@ -184,25 +187,38 @@ export class GraphCanon {
 		partitions: Map<
 			string,
 			{
-				partitions: Map<number, number>[];
+				partitions: number[][];
 				automorphisms: Map<string, Automorphism>;
 			}
 		>,
 		prunedSubtrees: Set<string>
-	): (nodeCells: number[], suffix: number[]) => void {
-		const cellIds = Array.from({length: this.nodeCount}, (_, i) => i + 1);
-		return (repNodeCells, suffix) => {
+	): (nodeCells: number[], suffix: number[], suffixPosition: number) => void {
+		const cellIds = Array.from({length: this.nodeCount}, (_, i) => i);
+		const buffer: number[] = [];
+		const partitionKeyParts: string[] = new Array(this.nodeCount);
+
+		return (repNodeCells, suffix, suffixPosition) => {
 			// Build the partition key for comparison with other partitions
-			const partition = new Map<number, number>();
-			repNodeCells.forEach((c, i) => partition.set(c, i));
-			const partitionKey = cellIds
-				.map((c) =>
-					this.nodeNeighbors[partition.get(c)!]
-						.map((n) => repNodeCells[n])
-						.sort()
-						.join(';')
-				)
-				.join('|');
+			const partition: number[] = new Array(this.nodeCount);
+			for (let i = 0; i < repNodeCells.length; i++) {
+				partition[repNodeCells[i] - 1] = i;
+			}
+			for (let i = 0; i < cellIds.length; i++) {
+				const c = cellIds[i];
+				const neighbors = this.nodeNeighbors[partition[c]];
+				buffer.length = neighbors.length;
+				for (let j = 0; j < neighbors.length; j++) {
+					buffer[j] = repNodeCells[neighbors[j]];
+				}
+				buffer.sort((a, b) => a - b);
+				let str = '' + buffer[0];
+				for (let j = 1; j < buffer.length; j++) {
+					str += ';' + buffer[j];
+				}
+				partitionKeyParts[i] = str;
+			}
+			const partitionKey = partitionKeyParts.join('|');
+
 			let sameRepresentations = partitions.get(partitionKey);
 			if (sameRepresentations === undefined) {
 				sameRepresentations = {
@@ -215,7 +231,7 @@ export class GraphCanon {
 			for (const partition of sameRepresentations.partitions) {
 				const automorphismMap = new Map<number, number>();
 				for (let i = 0; i < repNodeCells.length; i++) {
-					const partitionIndex = partition.get(repNodeCells[i])!;
+					const partitionIndex = partition[repNodeCells[i] - 1];
 					automorphismMap.set(i, partitionIndex);
 				}
 				const automorphism = new Automorphism(automorphismMap);
@@ -226,11 +242,19 @@ export class GraphCanon {
 						if (s === t) {
 							continue;
 						}
-						for (let i = 0; i < suffix.length; i++) {
+						for (let i = 0; i < suffixPosition; i++) {
 							if (suffix[i] === s) {
-								prunedSubtrees.add([...suffix.slice(0, i), t].join('|'));
+								if (i > 0) {
+									prunedSubtrees.add(suffix.slice(0, i).join('|') + '|' + t);
+								} else {
+									prunedSubtrees.add(t.toString());
+								}
 							} else if (suffix[i] === t) {
-								prunedSubtrees.add([...suffix.slice(0, i), s].join('|'));
+								if (i > 0) {
+									prunedSubtrees.add(suffix.slice(0, i).join('|') + '|' + s);
+								} else {
+									prunedSubtrees.add(s.toString());
+								}
 							}
 						}
 					}
@@ -253,14 +277,17 @@ export class GraphCanon {
 		const partitions: Map<
 			string,
 			{
-				partitions: Map<number, number>[];
+				partitions: number[][];
 				automorphisms: Map<string, Automorphism>;
 			}
 		> = new Map();
 		const prunedSubtrees = new Set<string>();
+		const suffix = new Array(this.nodeCount).fill(-1);
 		this.individualizeDFS(
 			nodeCells,
-			[],
+			suffix,
+			0,
+			'',
 			prunedSubtrees,
 			this.handleRepresentationCurry(partitions, prunedSubtrees)
 		);
@@ -303,16 +330,22 @@ export class GraphCanon {
 	private individualizeDFS(
 		nodeCells: number[],
 		suffix: number[],
+		suffixPosition: number,
+		suffixKey: string,
 		prunedSubtrees: Set<string>,
-		handleRepresentation: (nodeCells: number[], suffix: number[]) => void
+		handleRepresentation: (
+			nodeCells: number[],
+			suffix: number[],
+			suffixPosition: number
+		) => void
 	) {
 		if (this.isCanon(nodeCells)) {
-			handleRepresentation(nodeCells, suffix);
+			handleRepresentation(nodeCells, suffix, suffixPosition);
 			return;
 		}
 		this.individualizationRefinement(nodeCells);
 		if (this.isCanon(nodeCells)) {
-			handleRepresentation(nodeCells, suffix);
+			handleRepresentation(nodeCells, suffix, suffixPosition);
 			return;
 		}
 		const cellToBreak = this.getCellToBreak(nodeCells);
@@ -320,19 +353,23 @@ export class GraphCanon {
 			nodeCells[n] = cellToBreak[0] + 1;
 		}
 		for (const nodeId of cellToBreak[1]) {
+			const nextSuffixKey = suffixKey + '|' + nodeId;
 			// Check if subtree is pruned
-			const newSuffix = [...suffix, nodeId];
-			if (prunedSubtrees.has(newSuffix.join('|'))) {
+			if (prunedSubtrees.has(nextSuffixKey)) {
 				continue;
 			}
+			suffix[suffixPosition + 1] = nodeId;
 			nodeCells[nodeId] = cellToBreak[0];
 			this.individualizeDFS(
 				[...nodeCells],
-				newSuffix,
+				suffix,
+				suffixPosition + 1,
+				nextSuffixKey,
 				prunedSubtrees,
 				handleRepresentation
 			);
 			nodeCells[nodeId] = cellToBreak[0] + 1;
+			suffix[suffixPosition + 1] = -1;
 		}
 	}
 
@@ -340,8 +377,12 @@ export class GraphCanon {
 		let isEquitable = false;
 		while (!isEquitable) {
 			isEquitable = true;
-			// Build signature for each node
-			const signatures: string[] = nodeCells.map((_, i) => {
+			// Build signature for each node and group by current cell and signature
+			const partitionMap: Map<string, number[]>[] = new Array(
+				nodeCells.length
+			).fill(undefined);
+			let lowestDuplicateCell = nodeCells.length + 1;
+			for (let i = 0; i < nodeCells.length; i++) {
 				const neighborCells = this.nodeNeighbors[i].map((n) => {
 					if (this.hasEdgeLabels) {
 						const edgeLabels = this.graph.edgeLabels!;
@@ -352,50 +393,63 @@ export class GraphCanon {
 					}
 					return nodeCells[n].toString();
 				});
-				return neighborCells.sort().join('|');
-			});
-			// Group by current cell and signature
-			const partitionMap = new Map<number, Map<string, number[]>>();
-			signatures.forEach((signature, nodeIndex) => {
-				const cell = nodeCells[nodeIndex];
-				let cellMap = partitionMap.get(cell);
+				const signature = neighborCells.sort().join('|');
+				const cell = nodeCells[i];
+				const cellMap = partitionMap[cell];
 				if (cellMap === undefined) {
-					cellMap = new Map();
-					partitionMap.set(cell, cellMap);
+					partitionMap[cell] = new Map([[signature, [i]]]);
+				} else {
+					const nodeIndices = cellMap.get(signature);
+					if (nodeIndices === undefined) {
+						cellMap.set(signature, [i]);
+					} else {
+						nodeIndices.push(i);
+					}
+					if (cellMap.size > 1) {
+						isEquitable = false;
+						if (cell < lowestDuplicateCell) {
+							lowestDuplicateCell = cell;
+						}
+					}
 				}
-				let nodeIndices = cellMap.get(signature);
-				if (nodeIndices === undefined) {
-					nodeIndices = [];
-					cellMap.set(signature, nodeIndices);
-				}
-				nodeIndices.push(nodeIndex);
-			});
+			}
 			// Partition cells based on signature blocks
-			for (let cellId = 1; cellId <= this.nodeCount; cellId++) {
-				const value = partitionMap.get(cellId);
-				if (value === undefined || value.size < 2) {
-					continue;
-				}
-				isEquitable = false;
+			if (!isEquitable) {
+				const value = partitionMap[lowestDuplicateCell];
 				// Sort block signatures descending
 				const blockKeys = [...value.keys()].sort((a, b) => b.localeCompare(a));
-				let newCellId = cellId;
+				let newCellId = lowestDuplicateCell;
 				for (const key of blockKeys) {
 					const nodes = value.get(key)!;
 					nodes.forEach((n) => (nodeCells[n] = newCellId));
 					newCellId += nodes.length;
 				}
-				break;
 			}
 		}
 	}
 
 	private getCellToBreak(nodeCells: number[]): [number, number[]] {
-		const cells: number[][] = Array.from({length: nodeCells.length}, () => []);
-		nodeCells.forEach((c, i) => cells[c - 1].push(i));
-		for (let i = 0; i < cells.length; i++) {
-			if (cells[i].length > 1) {
-				return [i + 1, cells[i]];
+		let lowestDuplicateCellIndex = nodeCells.length;
+		const cells: number[][] = new Array(nodeCells.length).fill(undefined);
+		for (let i = 0; i < nodeCells.length; i++) {
+			const c = nodeCells[i] - 1;
+			if (c > lowestDuplicateCellIndex) {
+				// We already found a smaller cell with multiple entries
+				continue;
+			}
+			if (cells[c] === undefined) {
+				cells[c] = [i];
+			} else {
+				cells[c].push(i);
+				if (c < lowestDuplicateCellIndex) {
+					lowestDuplicateCellIndex = c;
+				}
+			}
+		}
+		if (lowestDuplicateCellIndex !== nodeCells.length) {
+			const cell = cells[lowestDuplicateCellIndex];
+			if (cell !== undefined && cell.length > 1) {
+				return [lowestDuplicateCellIndex + 1, cell];
 			}
 		}
 		return [1, cells[0]];
