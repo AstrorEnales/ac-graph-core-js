@@ -79,19 +79,22 @@ export class Automorphism {
 			.sort()
 			.join('');
 	}
+
+	public static identity(n: number): Automorphism {
+		return new Automorphism(new Map(Array.from({length: n}, (_, i) => [i, i])));
+	}
 }
 
 export class AutomorphismGroup {
 	public readonly generators: Automorphism[];
+	public readonly n: number;
 
 	constructor(generators: Automorphism[], n: number) {
+		this.n = n;
 		if (generators.some((g) => g.isIdentity())) {
 			this.generators = [...generators];
 		} else {
-			const identity = new Automorphism(
-				new Map(Array.from({length: n}, (_, i) => [i, i]))
-			);
-			this.generators = [identity, ...generators];
+			this.generators = [Automorphism.identity(n), ...generators];
 		}
 	}
 

@@ -31,7 +31,8 @@
     "lint-fix": "prettier --write .",
     "version-patch": "npm version patch --no-git-tag-version",
     "version-minor": "npm version minor --no-git-tag-version",
-    "version-major": "npm version major --no-git-tag-version"
+    "version-major": "npm version major --no-git-tag-version",
+    "test:profile:win": "set VITEST_PROFILE=1&&vitest&&set VITEST_PROFILE="
   },
   "devDependencies": {
     "@types/node": "^22.14.1",

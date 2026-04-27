@@ -222,15 +222,15 @@ export class GraphCanon {
 				const key = automorphism.toString();
 				if (!sameRepresentations.automorphisms.has(key)) {
 					sameRepresentations.automorphisms.set(key, automorphism);
-					for (const x of automorphism.mappings) {
-						if (x[0] === x[1]) {
+					for (const [s, t] of automorphism.mappings) {
+						if (s === t) {
 							continue;
 						}
 						for (let i = 0; i < suffix.length; i++) {
-							if (suffix[i] === x[0]) {
-								prunedSubtrees.add([...suffix.slice(0, i), x[1]].join('|'));
-							} else if (suffix[i] === x[1]) {
-								prunedSubtrees.add([...suffix.slice(0, i), x[0]].join('|'));
+							if (suffix[i] === s) {
+								prunedSubtrees.add([...suffix.slice(0, i), t].join('|'));
+							} else if (suffix[i] === t) {
+								prunedSubtrees.add([...suffix.slice(0, i), s].join('|'));
 							}
 						}
 					}
