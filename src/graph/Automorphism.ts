@@ -1,3 +1,5 @@
+import {Mapping} from './matching';
+
 export class Automorphism {
 	public readonly mappings: number[];
 	public readonly cycles: number[][] = [];
@@ -85,6 +87,29 @@ export class Automorphism {
 	public static identity(n: number): Automorphism {
 		return new Automorphism(Array.from({length: n}, (_, i) => i));
 	}
+
+	public static fromCycleNotation = (
+		n: number,
+		cycle: string
+	): Automorphism => {
+		const mapping = Array.from({length: n}, (_, i) => i);
+		cycle
+			.split('(')
+			.filter((s) => s.length > 1)
+			.map((s) =>
+				s
+					.replace(')', '')
+					.split(/\s+/)
+					.filter((s) => s.length > 0)
+					.map((x) => parseInt(x))
+			)
+			.forEach((m) => {
+				for (let i = 0; i < m.length; i++) {
+					mapping[m[i]] = m[(i + 1) % m.length];
+				}
+			});
+		return new Automorphism(mapping);
+	};
 }
 
 export class AutomorphismGroup {
@@ -163,6 +188,18 @@ export class AutomorphismGroup {
 			}
 		}
 		return result;
+	}
+
+	public remap(mapping: Mapping): AutomorphismGroup {
+		const mappedGenerators: Automorphism[] = [];
+		for (const gen of this.generators) {
+			const mappedGen = Array.from({length: this.n}, (_, i) => i);
+			for (let i = 0; i < this.n; i++) {
+				mappedGen[mapping[i]] = mapping[gen.mappings[i]];
+			}
+			mappedGenerators.push(new Automorphism(mappedGen));
+		}
+		return new AutomorphismGroup(mappedGenerators, this.n);
 	}
 
 	public toString(): string {
