@@ -31,6 +31,7 @@ export declare class GraphCanon {
     private readonly isSymmetric;
     private readonly graph;
     private readonly nodeNeighbors;
+    private readonly nodeNeighborEdgeSignatures;
     private readonly nodeKeys;
     private readonly nodePropertiesMapper;
     private readonly nodeLabelCanonKeyMapper;

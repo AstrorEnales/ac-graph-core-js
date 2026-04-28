@@ -1,4 +1,4 @@
-import {test, expect, afterAll} from 'vitest';
+import {test, expect} from 'vitest';
 import {Graph} from '..';
 import {
 	GraphCanon,
