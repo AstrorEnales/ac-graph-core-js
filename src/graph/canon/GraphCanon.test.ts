@@ -1,4 +1,4 @@
-import {test, expect} from 'vitest';
+import {test, expect, afterAll} from 'vitest';
 import {Graph} from '..';
 import {
 	GraphCanon,
@@ -6,6 +6,46 @@ import {
 	NodePropertiesCanonKeyMapper,
 	NodePropertiesMapper,
 } from './GraphCanon';
+
+/*afterAll(() => {
+	console.log(
+		'- Canonicalize',
+		GraphCanon.timingsCanonicalize.length,
+		'times,',
+		GraphCanon.timingsCanonicalize.reduce((s, c) => s + c, 0) /
+			GraphCanon.timingsCanonicalize.length,
+		'ms avg'
+	);
+	console.log(
+		'',
+		'- IndividualizeDFS',
+		GraphCanon.timingsIndividualizeDFS.length,
+		'times,',
+		GraphCanon.timingsIndividualizeDFS.reduce((s, c) => s + c, 0) /
+			GraphCanon.timingsIndividualizeDFS.length,
+		'ms avg'
+	);
+	console.log(
+		'',
+		'',
+		'- IndividualizationRefinement',
+		GraphCanon.timingsIndividualizationRefinement.length,
+		'times,',
+		GraphCanon.timingsIndividualizationRefinement.reduce((s, c) => s + c, 0) /
+			GraphCanon.timingsIndividualizationRefinement.length,
+		'ms avg'
+	);
+	console.log(
+		'',
+		'',
+		'- HandleRepresentation',
+		GraphCanon.timingsHandleRepresentation.length,
+		'times,',
+		GraphCanon.timingsHandleRepresentation.reduce((s, c) => s + c, 0) /
+			GraphCanon.timingsHandleRepresentation.length,
+		'ms avg'
+	);
+});*/
 
 function getAllPermutations<T>(array: T[]): T[][] {
 	if (array.length === 0) {

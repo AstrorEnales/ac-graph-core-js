@@ -1,10 +1,10 @@
 export class Automorphism {
-	public readonly mappings: Map<number, number>;
+	public readonly mappings: number[];
 	public readonly cycles: number[][] = [];
 
-	constructor(mappings: Map<number, number>) {
+	constructor(mappings: number[]) {
 		this.mappings = mappings;
-		if (new Set(mappings.values()).size !== mappings.size) {
+		if (new Set(mappings).size !== mappings.length) {
 			throw 'Automorphism is not bijective';
 		}
 		const visited = new Set<number>();
@@ -13,8 +13,8 @@ export class Automorphism {
 			if (!visited.has(key)) {
 				visited.add(key);
 				const cycle = [key];
-				while (mappings.has(cycle[cycle.length - 1])) {
-					const value = mappings.get(cycle[cycle.length - 1])!;
+				while (true) {
+					const value = mappings[cycle[cycle.length - 1]];
 					visited.add(value);
 					if (value !== cycle[0]) {
 						cycle.push(value);
@@ -30,31 +30,33 @@ export class Automorphism {
 	}
 
 	public apply(x: number): number {
-		return this.mappings.get(x)!;
+		return this.mappings[x];
 	}
 
 	/**
 	 * Compose this automorphism (f) with another one (g): (f ∘ g)(x) = f(g(x))
 	 */
 	public compose(g: Automorphism): Automorphism {
-		const h = new Map<number, number>();
-		for (const x of this.mappings.keys()) {
-			const gx = g.apply(x);
+		const h = new Array(this.mappings.length);
+		for (let i = 0; i < this.mappings.length; i++) {
+			const gx = g.apply(i);
 			const fgx = this.apply(gx);
-			h.set(x, fgx);
+			h[i] = fgx;
 		}
 		return new Automorphism(h);
 	}
 
 	public reverse(): Automorphism {
-		return new Automorphism(
-			new Map([...this.mappings.entries()].map(([k, v]) => [v, k]))
-		);
+		const mapping = new Array(this.mappings.length);
+		for (let i = 0; i < this.mappings.length; i++) {
+			mapping[this.mappings[i]] = i;
+		}
+		return new Automorphism(mapping);
 	}
 
 	public equals(g: Automorphism): boolean {
-		for (const key of this.mappings.keys()) {
-			if (this.mappings.get(key)! !== g.mappings.get(key)!) {
+		for (let i = 0; i < this.mappings.length; i++) {
+			if (this.mappings[i] !== g.mappings[i]) {
 				return false;
 			}
 		}
@@ -62,8 +64,8 @@ export class Automorphism {
 	}
 
 	public isIdentity(): boolean {
-		for (const key of this.mappings.keys()) {
-			if (this.mappings.get(key)! !== key) {
+		for (let i = 0; i < this.mappings.length; i++) {
+			if (this.mappings[i] !== i) {
 				return false;
 			}
 		}
@@ -81,7 +83,7 @@ export class Automorphism {
 	}
 
 	public static identity(n: number): Automorphism {
-		return new Automorphism(new Map(Array.from({length: n}, (_, i) => [i, i])));
+		return new Automorphism(Array.from({length: n}, (_, i) => i));
 	}
 }
 

@@ -73,12 +73,18 @@ export class GraphCanon {
 	private readonly isSymmetric: boolean;
 	private readonly graph: Graph;
 	private readonly nodeNeighbors: number[][];
+	private readonly nodeNeighborEdgeSignatures: string[][];
 	private readonly nodeKeys = new Map<number, string>();
 	private readonly nodePropertiesMapper: NodePropertiesMapper;
 	private readonly nodeLabelCanonKeyMapper: NodeLabelCanonKeyMapper;
 	private readonly edgeLabelCanonKeyMapper: EdgeLabelCanonKeyMapper;
 	private readonly nodePropertiesCanonKeyMapper: NodePropertiesCanonKeyMapper;
 	private readonly graphStringBuilder: (graph: Graph) => string;
+
+	// public static timingsCanonicalize: number[] = [];
+	// public static timingsIndividualizeDFS: number[] = [];
+	// public static timingsIndividualizationRefinement: number[] = [];
+	// public static timingsHandleRepresentation: number[] = [];
 
 	public constructor(
 		graph: Graph,
@@ -91,6 +97,10 @@ export class GraphCanon {
 		this.graph = graph;
 		this.nodeCount = graph.adjacencyMatrix.length;
 		this.nodeNeighbors = Array.from({length: this.nodeCount}, () => []);
+		this.nodeNeighborEdgeSignatures = Array.from(
+			{length: this.nodeCount},
+			() => []
+		);
 		this.hasNodeLabels = graph.labels !== undefined;
 		this.hasNodeProperties = graph.nodeProperties !== undefined;
 		this.hasEdgeLabels = graph.edgeLabels !== undefined;
@@ -101,6 +111,7 @@ export class GraphCanon {
 		let isSymmetric = true;
 		for (let i = 0; i < this.nodeCount; i++) {
 			const neighbors = this.nodeNeighbors[i];
+			const neighborEdgeSignatures = this.nodeNeighborEdgeSignatures[i];
 			let inDegree = 0;
 			let outDegree = 0;
 			for (let j = 0; j < this.nodeCount; j++) {
@@ -117,6 +128,18 @@ export class GraphCanon {
 				}
 				if (isOut === 1 || isIn === 1) {
 					neighbors.push(j);
+				}
+				if (this.hasEdgeLabels) {
+					const edgeLabels = this.graph.edgeLabels!;
+					if (edgeLabels[i][j] !== edgeLabels[j][i]) {
+						neighborEdgeSignatures.push(
+							`;${edgeLabels[i][j]};${edgeLabels[j][i]}`
+						);
+					} else {
+						neighborEdgeSignatures.push(`;${edgeLabels[i][j]}`);
+					}
+				} else {
+					neighborEdgeSignatures.push('');
 				}
 			}
 			const nodeKey =
@@ -137,13 +160,14 @@ export class GraphCanon {
 	 * 4. automorphisms
 	 */
 	public canonicalize(): [Graph, string, Mapping, AutomorphismGroup] {
+		// const start = performance.now();
 		const nodeCells = new Array(this.nodeCount).fill(1);
 		this.partitionByPropertyKeys(nodeCells);
 		const partitions: Map<
 			string,
 			{
 				partitions: number[][];
-				automorphisms: Map<string, Automorphism>;
+				automorphisms: Map<string, number[]>;
 			}
 		> = new Map();
 		const prunedSubtrees = new Set<string>();
@@ -169,18 +193,19 @@ export class GraphCanon {
 		const lexSmallestGraph = this.buildRepresentationGraph(
 			smallestRepresentation
 		);
-		const allAutomorphisms = new Map<string, Automorphism>();
-		[...partitions.values()].forEach((p) =>
-			[...p.automorphisms.entries()].forEach(([key, aut]) =>
-				allAutomorphisms.set(key, aut)
-			)
+		const allAutomorphisms = new Map<string, number[]>();
+		for (const p of partitions.values()) {
+			for (const [key, aut] of p.automorphisms) {
+				allAutomorphisms.set(key, aut);
+			}
+		}
+		const canonGraphString = this.buildGraphString(lexSmallestGraph);
+		const autGroup = new AutomorphismGroup(
+			[...allAutomorphisms.values()].map((aut) => new Automorphism(aut)),
+			this.nodeCount
 		);
-		return [
-			lexSmallestGraph,
-			this.buildGraphString(lexSmallestGraph),
-			lexSmallestMapping,
-			new AutomorphismGroup([...allAutomorphisms.values()], this.nodeCount),
-		];
+		// GraphCanon.timingsCanonicalize.push(performance.now() - start);
+		return [lexSmallestGraph, canonGraphString, lexSmallestMapping, autGroup];
 	}
 
 	private handleRepresentationCurry(
@@ -188,19 +213,20 @@ export class GraphCanon {
 			string,
 			{
 				partitions: number[][];
-				automorphisms: Map<string, Automorphism>;
+				automorphisms: Map<string, number[]>;
 			}
 		>,
 		prunedSubtrees: Set<string>
-	): (nodeCells: number[], suffix: number[], suffixPosition: number) => void {
+	): (nodeCells: number[], suffix: number[], suffixLength: number) => void {
 		const cellIds = Array.from({length: this.nodeCount}, (_, i) => i);
 		const buffer: number[] = [];
 		const partitionKeyParts: string[] = new Array(this.nodeCount);
 
-		return (repNodeCells, suffix, suffixPosition) => {
+		return (repNodeCells, suffix, suffixLength) => {
+			// const start = performance.now();
 			// Build the partition key for comparison with other partitions
 			const partition: number[] = new Array(this.nodeCount);
-			for (let i = 0; i < repNodeCells.length; i++) {
+			for (let i = 0; i < this.nodeCount; i++) {
 				partition[repNodeCells[i] - 1] = i;
 			}
 			for (let i = 0; i < cellIds.length; i++) {
@@ -229,20 +255,19 @@ export class GraphCanon {
 			}
 
 			for (const partition of sameRepresentations.partitions) {
-				const automorphismMap = new Map<number, number>();
-				for (let i = 0; i < repNodeCells.length; i++) {
-					const partitionIndex = partition[repNodeCells[i] - 1];
-					automorphismMap.set(i, partitionIndex);
+				const automorphism = new Array(this.nodeCount);
+				for (let i = 0; i < this.nodeCount; i++) {
+					automorphism[i] = partition[repNodeCells[i] - 1];
 				}
-				const automorphism = new Automorphism(automorphismMap);
-				const key = automorphism.toString();
+				const key = automorphism.join('|');
 				if (!sameRepresentations.automorphisms.has(key)) {
 					sameRepresentations.automorphisms.set(key, automorphism);
-					for (const [s, t] of automorphism.mappings) {
+					for (let s = 0; s < this.nodeCount; s++) {
+						const t = automorphism[s];
 						if (s === t) {
 							continue;
 						}
-						for (let i = 0; i < suffixPosition; i++) {
+						for (let i = 0; i < suffixLength; i++) {
 							if (suffix[i] === s) {
 								if (i > 0) {
 									prunedSubtrees.add(suffix.slice(0, i).join('|') + '|' + t);
@@ -262,6 +287,7 @@ export class GraphCanon {
 			}
 			// Save the representation
 			sameRepresentations.partitions.push(partition);
+			// GraphCanon.timingsHandleRepresentation.push(performance.now() - start);
 		};
 	}
 
@@ -278,7 +304,7 @@ export class GraphCanon {
 			string,
 			{
 				partitions: number[][];
-				automorphisms: Map<string, Automorphism>;
+				automorphisms: Map<string, number[]>;
 			}
 		> = new Map();
 		const prunedSubtrees = new Set<string>();
@@ -291,14 +317,14 @@ export class GraphCanon {
 			prunedSubtrees,
 			this.handleRepresentationCurry(partitions, prunedSubtrees)
 		);
-		const allAutomorphisms = new Map<string, Automorphism>();
-		[...partitions.values()].forEach((p) =>
-			[...p.automorphisms.entries()].forEach(([key, aut]) =>
-				allAutomorphisms.set(key, aut)
-			)
-		);
+		const allAutomorphisms = new Map<string, number[]>();
+		for (const p of partitions.values()) {
+			for (const [key, aut] of p.automorphisms) {
+				allAutomorphisms.set(key, aut);
+			}
+		}
 		return new AutomorphismGroup(
-			[...allAutomorphisms.values()],
+			[...allAutomorphisms.values()].map((aut) => new Automorphism(aut)),
 			this.nodeCount
 		);
 	}
@@ -330,50 +356,56 @@ export class GraphCanon {
 	private individualizeDFS(
 		nodeCells: number[],
 		suffix: number[],
-		suffixPosition: number,
+		suffixLength: number,
 		suffixKey: string,
 		prunedSubtrees: Set<string>,
 		handleRepresentation: (
 			nodeCells: number[],
 			suffix: number[],
-			suffixPosition: number
+			suffixLength: number
 		) => void
 	) {
+		// const start = performance.now();
 		if (this.isCanon(nodeCells)) {
-			handleRepresentation(nodeCells, suffix, suffixPosition);
+			handleRepresentation(nodeCells, suffix, suffixLength);
+			// GraphCanon.timingsIndividualizeDFS.push(performance.now() - start);
 			return;
 		}
 		this.individualizationRefinement(nodeCells);
 		if (this.isCanon(nodeCells)) {
-			handleRepresentation(nodeCells, suffix, suffixPosition);
+			handleRepresentation(nodeCells, suffix, suffixLength);
+			// GraphCanon.timingsIndividualizeDFS.push(performance.now() - start);
 			return;
 		}
-		const cellToBreak = this.getCellToBreak(nodeCells);
-		for (const n of cellToBreak[1]) {
-			nodeCells[n] = cellToBreak[0] + 1;
+		const [cellToBreak, nodes] = this.getCellToBreak(nodeCells);
+		for (const n of nodes) {
+			nodeCells[n] = cellToBreak + 1;
 		}
-		for (const nodeId of cellToBreak[1]) {
+		suffixLength++;
+		for (const nodeId of nodes) {
 			const nextSuffixKey = suffixKey + '|' + nodeId;
 			// Check if subtree is pruned
 			if (prunedSubtrees.has(nextSuffixKey)) {
 				continue;
 			}
-			suffix[suffixPosition + 1] = nodeId;
-			nodeCells[nodeId] = cellToBreak[0];
+			suffix[suffixLength] = nodeId;
+			nodeCells[nodeId] = cellToBreak;
 			this.individualizeDFS(
 				[...nodeCells],
 				suffix,
-				suffixPosition + 1,
+				suffixLength,
 				nextSuffixKey,
 				prunedSubtrees,
 				handleRepresentation
 			);
-			nodeCells[nodeId] = cellToBreak[0] + 1;
-			suffix[suffixPosition + 1] = -1;
+			nodeCells[nodeId] = cellToBreak + 1;
+			suffix[suffixLength] = -1;
 		}
+		// GraphCanon.timingsIndividualizeDFS.push(performance.now() - start);
 	}
 
 	private individualizationRefinement(nodeCells: number[]) {
+		// const start = performance.now();
 		let isEquitable = false;
 		while (!isEquitable) {
 			isEquitable = true;
@@ -383,17 +415,11 @@ export class GraphCanon {
 			).fill(undefined);
 			let lowestDuplicateCell = nodeCells.length + 1;
 			for (let i = 0; i < nodeCells.length; i++) {
-				const neighborCells = this.nodeNeighbors[i].map((n) => {
-					if (this.hasEdgeLabels) {
-						const edgeLabels = this.graph.edgeLabels!;
-						if (this.isSymmetric) {
-							return `${nodeCells[n]};${edgeLabels[i][n]}`;
-						}
-						return `${nodeCells[n]};${edgeLabels[i][n]};${edgeLabels[n][i]}`;
-					}
-					return nodeCells[n].toString();
-				});
-				const signature = neighborCells.sort().join('|');
+				const neighborEdgeSignatures = this.nodeNeighborEdgeSignatures[i];
+				const signature = this.nodeNeighbors[i]
+					.map((n) => nodeCells[n] + neighborEdgeSignatures[n])
+					.sort()
+					.join('|');
 				const cell = nodeCells[i];
 				const cellMap = partitionMap[cell];
 				if (cellMap === undefined) {
@@ -417,15 +443,21 @@ export class GraphCanon {
 			if (!isEquitable) {
 				const value = partitionMap[lowestDuplicateCell];
 				// Sort block signatures descending
-				const blockKeys = [...value.keys()].sort((a, b) => b.localeCompare(a));
+				const blocks = [...value.entries()].sort((a, b) =>
+					b[0].localeCompare(a[0])
+				);
 				let newCellId = lowestDuplicateCell;
-				for (const key of blockKeys) {
-					const nodes = value.get(key)!;
-					nodes.forEach((n) => (nodeCells[n] = newCellId));
+				for (const [_, nodes] of blocks) {
+					for (let i = 0; i < nodes.length; i++) {
+						nodeCells[nodes[i]] = newCellId;
+					}
 					newCellId += nodes.length;
 				}
 			}
 		}
+		// GraphCanon.timingsIndividualizationRefinement.push(
+		// 	performance.now() - start
+		// );
 	}
 
 	private getCellToBreak(nodeCells: number[]): [number, number[]] {
