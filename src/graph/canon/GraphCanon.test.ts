@@ -52,13 +52,17 @@ function testAllPermutations(graph: Graph) {
 	);
 }
 
-function testPermutations(graph: Graph, permutations: number[][]) {
+function getCanonKey(graph: Graph): string {
 	const canon = new GraphCanon(graph);
 	const [, canonGraphString] = canon.canonicalize();
+	return canonGraphString;
+}
+
+function testPermutations(graph: Graph, permutations: number[][]) {
+	const canonGraphString = getCanonKey(graph);
 	permutations.forEach((perm) => {
 		const permGraph = applyPermutationToGraph(graph, perm);
-		const permCanon = new GraphCanon(permGraph);
-		const [, permCanonGraphString] = permCanon.canonicalize();
+		const permCanonGraphString = getCanonKey(permGraph);
 		expect(permCanonGraphString).toBe(canonGraphString);
 	});
 }
@@ -72,6 +76,7 @@ test('undirected unlabeled graph canon', () => {
 			[0, 1, 1, 0],
 		],
 	};
+	expect(getCanonKey(graph)).toBe('v2;4;sym;0-3|1-2|1-3|2-3');
 	testAllPermutations(graph);
 });
 
@@ -84,11 +89,12 @@ test('directed unlabeled graph canon', () => {
 			[0, 1, 1, 0],
 		],
 	};
+	expect(getCanonKey(graph)).toBe('v2;4;0-3|1-2|1-3|2-1|2-3|3-1|3-2');
 	testAllPermutations(graph);
 });
 
 test('undirected edge-labeled graph canon', () => {
-	testAllPermutations({
+	let graph = {
 		adjacencyMatrix: [
 			[0, 1, 0, 0],
 			[1, 0, 1, 1],
@@ -101,8 +107,10 @@ test('undirected edge-labeled graph canon', () => {
 			['', '=', '', '-'],
 			['', '=', '-', ''],
 		],
-	});
-	testAllPermutations({
+	};
+	testAllPermutations(graph);
+	expect(getCanonKey(graph)).toBe('v2;4;sym;0---3|1---2|1-=-3|2-=-3');
+	graph = {
 		adjacencyMatrix: [
 			[0, 1, 0, 0],
 			[1, 0, 1, 1],
@@ -115,7 +123,9 @@ test('undirected edge-labeled graph canon', () => {
 			['', '#', '', '-'],
 			['', '=', '-', ''],
 		],
-	});
+	};
+	testAllPermutations(graph);
+	expect(getCanonKey(graph)).toBe('v2;4;sym;0---3|1---2|1-=-3|2-#-3');
 });
 
 test('larger undirected unlabeled graph canon', () => {
