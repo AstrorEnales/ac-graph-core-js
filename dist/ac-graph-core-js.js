@@ -1,6 +1,6 @@
 var P = Object.defineProperty;
-var N = (w, e, n) => e in w ? P(w, e, { enumerable: !0, configurable: !0, writable: !0, value: n }) : w[e] = n;
-var d = (w, e, n) => N(w, typeof e != "symbol" ? e + "" : e, n);
+var N = (S, e, n) => e in S ? P(S, e, { enumerable: !0, configurable: !0, writable: !0, value: n }) : S[e] = n;
+var d = (S, e, n) => N(S, typeof e != "symbol" ? e + "" : e, n);
 class E {
 }
 class I extends E {
@@ -29,8 +29,8 @@ class I extends E {
       f,
       y
     ] = this.getInOutDegrees(e, n), p = u.map(
-      (j, b) => f.map((S, C) => S >= j && y[C] >= h[b] && (s[b] === -1 || s[b] === C) && (!a || m.has(b) || e.labels[b] === n.labels[C]) ? C : -1).filter((S) => S !== -1)
-    ), v = (j) => {
+      (j, b) => f.map((w, C) => w >= j && y[C] >= h[b] && (s[b] === -1 || s[b] === C) && (!a || m.has(b) || e.labels[b] === n.labels[C]) ? C : -1).filter((w) => w !== -1)
+    ), x = (j) => {
       if (j === i)
         return this.checkCompatibility(
           e,
@@ -46,13 +46,13 @@ class I extends E {
             c,
             j,
             g
-          ) && v(j + 1))
+          ) && x(j + 1))
             return !0;
           l[b] = !1, c[j] = -1;
         }
       return !1;
     };
-    return v(0);
+    return x(0);
   }
   getInOutDegrees(e, n) {
     const o = e.adjacencyMatrix.map(
@@ -100,8 +100,8 @@ class I extends E {
       f,
       y,
       p
-    ] = this.getInOutDegrees(e, n), v = h.map(
-      (b, S) => y.map((C, D) => C >= b && p[D] >= f[S] && (s[S] === -1 || s[S] === D) && (!m || l.has(S) || e.labels[S] === n.labels[D]) ? D : -1).filter((C) => C !== -1)
+    ] = this.getInOutDegrees(e, n), x = h.map(
+      (b, w) => y.map((C, D) => C >= b && p[D] >= f[w] && (s[w] === -1 || s[w] === D) && (!m || l.has(w) || e.labels[w] === n.labels[D]) ? D : -1).filter((C) => C !== -1)
     ), j = (b) => {
       if (b === i) {
         this.checkCompatibility(
@@ -112,14 +112,14 @@ class I extends E {
         ) && a.push([...u]);
         return;
       }
-      for (const S of v[b])
-        g[S] || (u[b] = S, g[S] = !0, this.isFeasible(
+      for (const w of x[b])
+        g[w] || (u[b] = w, g[w] = !0, this.isFeasible(
           e,
           n,
           u,
           b,
           c
-        ) && j(b + 1), g[S] = !1, u[b] = -1);
+        ) && j(b + 1), g[w] = !1, u[b] = -1);
     };
     return j(0), a;
   }
@@ -219,12 +219,12 @@ d(L, "fromCycleNotation", (e, n) => {
       o[t[s]] = t[(s + 1) % t.length];
   }), new L(o);
 });
-let x = L;
-class A {
+let A = L;
+class v {
   constructor(e, n) {
     d(this, "generators");
     d(this, "n");
-    this.n = n, e.some((o) => o.isIdentity()) ? this.generators = [...e] : this.generators = [x.identity(n), ...e];
+    this.n = n, e.some((o) => o.isIdentity()) ? this.generators = [...e] : this.generators = [A.identity(n), ...e];
   }
   orbitOf(e) {
     const n = /* @__PURE__ */ new Set();
@@ -278,9 +278,9 @@ class A {
       const t = Array.from({ length: this.n }, (s, i) => i);
       for (let s = 0; s < this.n; s++)
         t[e[s]] = e[o.mappings[s]];
-      n.push(new x(t));
+      n.push(new A(t));
     }
-    return new A(n, this.n);
+    return new v(n, this.n);
   }
   toString() {
     return "[" + this.generators.map((e) => e.toString()).join(", ") + "]";
@@ -345,7 +345,6 @@ const M = class M {
       e,
       t,
       0,
-      "",
       o,
       this.handleRepresentationCurry(n, o)
     );
@@ -361,8 +360,8 @@ const M = class M {
     for (const u of n.values())
       for (const [h, f] of u.automorphisms)
         c.set(h, f);
-    const m = this.buildGraphString(l), g = new A(
-      [...c.values()].map((u) => new x(u)),
+    const m = this.buildGraphString(l), g = new v(
+      [...c.values()].map((u) => new A(u)),
       this.nodeCount
     );
     return [l, m, a, g];
@@ -422,7 +421,6 @@ const M = class M {
       e,
       t,
       0,
-      "",
       o,
       this.handleRepresentationCurry(n, o)
     );
@@ -430,8 +428,8 @@ const M = class M {
     for (const i of n.values())
       for (const [r, a] of i.automorphisms)
         s.set(r, a);
-    return new A(
-      [...s.values()].map((i) => new x(i)),
+    return new v(
+      [...s.values()].map((i) => new A(i)),
       this.nodeCount
     );
   }
@@ -450,29 +448,30 @@ const M = class M {
   isCanon(e) {
     return new Set(e).size === this.nodeCount;
   }
-  individualizeDFS(e, n, o, t, s, i) {
+  individualizeDFS(e, n, o, t, s) {
     if (this.isCanon(e)) {
-      i(e, n, o);
+      s(e, n, o);
       return;
     }
     if (this.individualizationRefinement(e), this.isCanon(e)) {
-      i(e, n, o);
+      s(e, n, o);
       return;
     }
-    const [r, a] = this.getCellToBreak(e);
-    for (const l of a)
-      e[l] = r + 1;
-    o++;
-    for (const l of a) {
-      const c = t + "|" + l;
-      s.has(c) || (n[o] = l, e[l] = r, this.individualizeDFS(
+    const [i, r] = this.getCellToBreak(e);
+    for (const a of r)
+      e[a] = i + 1;
+    for (const a of r) {
+      if (n[o] = a, t.has(n.slice(0, o + 1).join("|"))) {
+        n[o] = -1;
+        continue;
+      }
+      e[a] = i, this.individualizeDFS(
         [...e],
         n,
-        o,
-        c,
-        s,
-        i
-      ), e[l] = r + 1, n[o] = -1);
+        o + 1,
+        t,
+        s
+      ), e[a] = i + 1, n[o] = -1;
     }
   }
   individualizationRefinement(e) {
@@ -617,19 +616,19 @@ class z {
     return n;
   }
 }
-function $(w) {
-  const e = w.adjacencyMatrix.length;
+function $(S) {
+  const e = S.adjacencyMatrix.length;
   let n = [];
   for (let o = 0; o < e; o++)
     for (let t = o + 1; t < e; t++)
-      w.adjacencyMatrix[o][t] !== 0 && n.push(`e ${o + 1} ${t + 1}`);
+      S.adjacencyMatrix[o][t] !== 0 && n.push(`e ${o + 1} ${t + 1}`);
   return [`p edge ${e} ${n.length}`, ...n].join(`
 `);
 }
 const R = /* @__PURE__ */ Object.freeze(/* @__PURE__ */ Object.defineProperty({
   __proto__: null,
-  Automorphism: x,
-  AutomorphismGroup: A,
+  Automorphism: A,
+  AutomorphismGroup: v,
   ConnectedComponents: z,
   canon: k,
   matching: O,

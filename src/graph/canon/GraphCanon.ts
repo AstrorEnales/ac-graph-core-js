@@ -176,7 +176,6 @@ export class GraphCanon {
 			nodeCells,
 			suffix,
 			0,
-			'',
 			prunedSubtrees,
 			this.handleRepresentationCurry(partitions, prunedSubtrees)
 		);
@@ -313,7 +312,6 @@ export class GraphCanon {
 			nodeCells,
 			suffix,
 			0,
-			'',
 			prunedSubtrees,
 			this.handleRepresentationCurry(partitions, prunedSubtrees)
 		);
@@ -357,7 +355,6 @@ export class GraphCanon {
 		nodeCells: number[],
 		suffix: number[],
 		suffixLength: number,
-		suffixKey: string,
 		prunedSubtrees: Set<string>,
 		handleRepresentation: (
 			nodeCells: number[],
@@ -381,20 +378,18 @@ export class GraphCanon {
 		for (const n of nodes) {
 			nodeCells[n] = cellToBreak + 1;
 		}
-		suffixLength++;
 		for (const nodeId of nodes) {
-			const nextSuffixKey = suffixKey + '|' + nodeId;
+			suffix[suffixLength] = nodeId;
 			// Check if subtree is pruned
-			if (prunedSubtrees.has(nextSuffixKey)) {
+			if (prunedSubtrees.has(suffix.slice(0, suffixLength + 1).join('|'))) {
+				suffix[suffixLength] = -1;
 				continue;
 			}
-			suffix[suffixLength] = nodeId;
 			nodeCells[nodeId] = cellToBreak;
 			this.individualizeDFS(
 				[...nodeCells],
 				suffix,
-				suffixLength,
-				nextSuffixKey,
+				suffixLength + 1,
 				prunedSubtrees,
 				handleRepresentation
 			);
