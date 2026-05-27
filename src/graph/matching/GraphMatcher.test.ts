@@ -1,10 +1,14 @@
 import {describe, test, expect} from 'vitest';
 import {GraphMatcher} from './GraphMatcher';
 import {UllmannGraphMatcher} from './UllmannGraphMatcher';
+import {VF2GraphMatcher} from './VF2GraphMatcher';
+import {VF2PlusPlusGraphMatcher} from './VF2PlusPlusGraphMatcher';
 import {Graph} from '..';
 
 const matchers: Array<[string, () => GraphMatcher]> = [
 	['Ullmann', () => new UllmannGraphMatcher()],
+	['VF2', () => new VF2GraphMatcher()],
+	['VF2++', () => new VF2PlusPlusGraphMatcher()],
 ];
 
 describe.each(matchers)('%s', (_name, makeMatcher) => {
