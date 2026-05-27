@@ -19,9 +19,9 @@ export abstract class GraphMatcher {
 	public abstract isSubgraphIsomorphic(
 		pattern: Graph,
 		target: Graph,
-		nodeLabelWildcards: number[],
-		edgeLabelWildcards: string[],
-		partialMapping: number[] | null
+		nodeLabelWildcards?: number[],
+		edgeLabelWildcards?: string[],
+		partialMapping?: number[] | null
 	): boolean;
 
 	/**
@@ -42,8 +42,8 @@ export abstract class GraphMatcher {
 	public abstract findAllSubgraphMonomorphisms(
 		pattern: Graph,
 		target: Graph,
-		nodeLabelWildcards: number[],
-		edgeLabelWildcards: string[],
-		partialMapping: number[] | null
+		nodeLabelWildcards?: number[],
+		edgeLabelWildcards?: string[],
+		partialMapping?: number[] | null
 	): Mapping[];
 }
