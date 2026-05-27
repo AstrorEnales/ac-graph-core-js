@@ -263,4 +263,46 @@ describe.each(matchers)('%s', (_name, makeMatcher) => {
 		expect(matches).toContainEqual([2, 1, 3]);
 		expect(matches).toContainEqual([2, 1, 0]);
 	});
+
+	test('partial mapping that violates the pattern structure returns no matches', () => {
+		const pattern: Graph = {
+			adjacencyMatrix: [
+				[0, 1, 0],
+				[1, 0, 1],
+				[0, 1, 0],
+			],
+		};
+		const target: Graph = {
+			adjacencyMatrix: [
+				[0, 1, 0, 0],
+				[1, 0, 1, 1],
+				[0, 1, 0, 0],
+				[0, 1, 0, 0],
+			],
+		};
+		const matcher = makeMatcher();
+		// Pin the two endpoints of the pattern edge 0-1 to two target leaves
+		// (target node 0 and target node 2). The target leaves are NOT
+		// directly connected -- they only meet at the star center (target
+		// node 1) -- so the pattern's required 0-1 edge can never be
+		// preserved. The matcher must reject the pinning rather than
+		// silently violate it.
+		const matches = matcher.findAllSubgraphMonomorphisms(
+			pattern,
+			target,
+			undefined,
+			undefined,
+			[0, 2, -1]
+		);
+		expect(matches.length).toBe(0);
+		expect(
+			matcher.isSubgraphIsomorphic(
+				pattern,
+				target,
+				undefined,
+				undefined,
+				[0, 2, -1]
+			)
+		).toBeFalsy();
+	});
 });
