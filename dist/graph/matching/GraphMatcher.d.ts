@@ -15,7 +15,7 @@ export declare abstract class GraphMatcher {
      * same format as the Mapping type. Nodes not fixed in the partial mapping
      * are represented by -1.
      */
-    abstract isSubgraphIsomorphic(pattern: Graph, target: Graph, nodeLabelWildcards: number[], edgeLabelWildcards: string[], partialMapping: number[] | null): boolean;
+    abstract isSubgraphIsomorphic(pattern: Graph, target: Graph, nodeLabelWildcards?: number[], edgeLabelWildcards?: string[], partialMapping?: number[] | null): boolean;
     /**
      * Collect all possible monomorphisms of the pattern graph in the target graph
      * including symmetries
@@ -31,5 +31,5 @@ export declare abstract class GraphMatcher {
      * same format as the Mapping type. Nodes not fixed in the partial mapping
      * are represented by -1.
      */
-    abstract findAllSubgraphMonomorphisms(pattern: Graph, target: Graph, nodeLabelWildcards: number[], edgeLabelWildcards: string[], partialMapping: number[] | null): Mapping[];
+    abstract findAllSubgraphMonomorphisms(pattern: Graph, target: Graph, nodeLabelWildcards?: number[], edgeLabelWildcards?: string[], partialMapping?: number[] | null): Mapping[];
 }
