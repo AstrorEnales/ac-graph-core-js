@@ -85,5 +85,14 @@ describe('AutomorphismGroup', () => {
 			[0, 1],
 			[2, 3],
 		]);
+		aut = Automorphism.fromCycleNotation(3, '(0 2)');
+		autGroup = new AutomorphismGroup([aut], 3).remap([0, 2, 1]);
+		expect(autGroup.toString()).toBe('[(), (0 1)]');
+		aut = Automorphism.fromCycleNotation(29, '(21 22)');
+		autGroup = new AutomorphismGroup([aut], 29).remap([
+			27, 28, 0, 16, 20, 17, 21, 22, 26, 24, 13, 8, 3, 4, 2, 7, 18, 11, 14, 23,
+			25, 10, 1, 12, 9, 6, 5, 19, 15,
+		]);
+		expect(autGroup.toString()).toBe('[(), (6 7)]');
 	});
 });

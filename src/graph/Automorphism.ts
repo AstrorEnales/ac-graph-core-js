@@ -195,7 +195,9 @@ export class AutomorphismGroup {
 		for (const gen of this.generators) {
 			const mappedGen = Array.from({length: this.n}, (_, i) => i);
 			for (let i = 0; i < this.n; i++) {
-				mappedGen[mapping[i]] = mapping[gen.mappings[i]];
+				const index1 = mapping.indexOf(i);
+				const index2 = mapping.indexOf(gen.mappings[i]);
+				mappedGen[index1] = index2;
 			}
 			mappedGenerators.push(new Automorphism(mappedGen));
 		}
